@@ -205,8 +205,13 @@ export const config = {
 export function validateConfig() {
   const errors = [];
 
-  if (config.wallets.length === 0)
-    errors.push("PRIVATE_KEY atau PRIVATE_KEYS harus diisi");
+  // Check for any wallet source: PRIVATE_KEY, PRIVATE_KEYS, or MNEMONIC
+  const hasPrivateKey = process.env.PRIVATE_KEY;
+  const hasPrivateKeys = process.env.PRIVATE_KEYS;
+  const hasMnemonic = process.env.MNEMONIC?.trim();
+  
+  if (!hasPrivateKey && !hasPrivateKeys && !hasMnemonic)
+    errors.push("PRIVATE_KEY atau PRIVATE_KEYS atau MNEMONIC harus diisi");
 
   if (!config.openseaApiKey)
     errors.push("OPENSEA_API_KEY harus diisi");

@@ -5,8 +5,17 @@ import {
   createListing,
   cancelListing,
   calculatePrice,
+  getFloorPrice,
 } from "./opensea.js";
 import { config } from "./config.js";
+import { 
+  notifyListed, 
+  notifyRelisted, 
+  notifySold,
+  notifyFloorPrice,
+  notifyBotStarted,
+  notifyError 
+} from "./telegram.js";
 
 export async function runBotCycle() {
   log.title("🤖 OPENSEA AUTO BOT — MULAI SIKLUS");
@@ -39,7 +48,7 @@ export async function runBotCycle() {
 
           if (priceDiff < 0.001 && !isExpired) {
             const minsLeft = Math.round((expiresAt - now) / 60);
-            log.info(`⏭️  Skip: ${label} | ${currentPrice.toFixed(4)} ANIME | ${minsLeft} mnt lagi`);
+            log.info(`⏭️  Skip: ${label} | ${currentPrice.toFixed(4)} ${config.chainSymbol} | ${minsLeft} mnt lagi`);
             skipped++;
             await sleep(500);
             continue;
@@ -48,7 +57,7 @@ export async function runBotCycle() {
           if (isExpired) {
             log.warn(`⏰ Expired, relist: ${label}`);
           } else {
-            log.warn(`📉 Floor berubah: ${label} | ${currentPrice.toFixed(4)} → ${targetPrice.toFixed(4)} ANIME`);
+            log.warn(`📉 Floor berubah: ${label} | ${currentPrice.toFixed(4)} → ${targetPrice.toFixed(4)} ${config.chainSymbol}`);
           }
 
           // Cancel dengan kirim orderParameters dari existing listing
@@ -56,13 +65,30 @@ export async function runBotCycle() {
           await cancelListing(existing.order_hash, orderParams);
           await sleep(3000);
           relisted++;
+
+          // Notify relisted
+          notifyRelisted(
+            nft.identifier, 
+            nft.collection || nft.name, 
+            currentPrice.toFixed(4), 
+            targetPrice.toFixed(4), 
+            config.chainSymbol
+          );
         } else {
-          log.info(`📋 Listing baru: ${label} @ ${targetPrice.toFixed(4)} ANIME`);
+          log.info(`📋 Listing baru: ${label} @ ${targetPrice.toFixed(4)} ${config.chainSymbol}`);
           listed++;
+
+          // Notify new listing
+          notifyListed(
+            nft.identifier, 
+            nft.collection || nft.name, 
+            targetPrice.toFixed(4), 
+            config.chainSymbol
+          );
         }
 
         const { price } = await createListing(nft);
-        log.success(`✅ Listed: ${label} @ ${price.toFixed(4)} ANIME`);
+        log.success(`✅ Listed: ${label} @ ${price.toFixed(4)} ${config.chainSymbol}`);
 
       } catch (err) {
         log.error(`Gagal: ${label} — ${err.message}`);

@@ -122,3 +122,10 @@ export function getSupportedChains() {
     chainId: CHAIN_MAP[chain].chainId,
   }));
 }
+
+// Telegram notifications
+export const telegram = {
+  enabled: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
+  botToken: process.env.TELEGRAM_BOT_TOKEN,
+  chatId: process.env.TELEGRAM_CHAT_ID,
+};

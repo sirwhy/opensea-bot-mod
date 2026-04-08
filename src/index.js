@@ -1,10 +1,11 @@
 import cron from "node-cron";
 import chalk from "chalk";
-import { validateConfig, config } from "./config.js";
-import { initWallet, getWalletBalance } from "./wallet.js";
-import { initOpenSea } from "./opensea.js";
+import { validateConfig, config, telegram } from "./config.js";
+import { initWallet, getWalletAddress, getWalletBalance } from "./wallet.js";
+import { initOpenSea, getNFTsInWallet } from "./opensea.js";
 import { runBotCycle } from "./bot.js";
 import { log } from "./logger.js";
+import { notifyBotStarted, notifyError } from "./telegram.js";
 
 function printBanner() {
   console.log(chalk.bold.cyan(`
@@ -44,6 +45,14 @@ async function main() {
   log.info("Menjalankan siklus pertama...");
   await runBotCycle();
 
+  // Send Telegram notification if enabled
+  if (telegram.enabled) {
+    const nfts = await getNFTsInWallet().catch(() => []);
+    const walletAddr = getWalletAddress();
+    await notifyBotStarted(walletAddr, config.chainName, nfts.length);
+    log.success("📱 Notifikasi Telegram dikirim");
+  }
+
   log.info(`\n⏰ Bot dijadwalkan: ${chalk.bold(config.cronSchedule)}`);
   log.info("Bot berjalan di background. Tekan Ctrl+C untuk berhenti.\n");
 
@@ -61,6 +70,7 @@ process.on("SIGINT", () => {
 process.on("uncaughtException", (err) => {
   log.error(`Uncaught error: ${err.message}`);
   console.error(err);
+  notifyError(err.message);
 });
 
 main();

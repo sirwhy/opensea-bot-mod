@@ -20,3 +20,7 @@ export async function getWalletBalance() {
   const balance = await provider.getBalance(wallet.address);
   return ethers.formatEther(balance);
 }
+
+export function getWalletAddress() {
+  return wallet.address;
+}

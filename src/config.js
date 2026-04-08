@@ -92,11 +92,16 @@ export const config = {
   chainName: chainKey,
   chainId: chainInfo.chainId,
   chainSymbol: chainInfo.symbol,
-  // Default price - akan di-override oleh floor price jika followFloorPrice=true
+  // Price mode: "eth" atau "usd"
+  priceMode: (process.env.PRICE_MODE || "eth").toLowerCase(),
+  // Default price dalam ETH atau USD
   defaultPrice: parseFloat(process.env.DEFAULT_PRICE || "0.01"),
   minPrice: parseFloat(process.env.MIN_PRICE || "0.001"),
   // Auto-detect floor price - default TRUE
   followFloorPrice: process.env.FOLLOW_FLOOR_PRICE !== "false",
+  // Floor price dalam USD atau ETH (sesuai priceMode)
+  floorPriceUsd: parseFloat(process.env.FLOOR_PRICE_USD || "0"),
+  // Offset harga dari floor price (dalam %)
   priceOffsetPercent: parseFloat(process.env.PRICE_OFFSET_PERCENT || "-10"),
   // Listing 10 menit = 600 detik (OpenSea pakai detik)
   listingDurationSeconds: parseInt(process.env.LISTING_DURATION_SECONDS || "600"),

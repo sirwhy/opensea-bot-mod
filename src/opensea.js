@@ -182,20 +182,35 @@ async function getNFTsViaEvents(nftContract, walletAddress) {
 
 export async function calculatePrice(nft) {
   try {
-    const highestSale = await getLastSalePrice();
+    let priceInEth;
     const offset = config.priceOffsetPercent / 100;
+
+    // Get floor/sale price
+    const highestSale = await getLastSalePrice();
+
+    // Apply offset
     let price = highestSale * (1 + offset);
 
-    // Jangan listing di bawah harga minimum
-    if (price < config.minPrice) {
-      log.info(`💰 Last sale ${highestSale.toFixed(4)} di bawah minimum, pakai MIN_PRICE: ${config.minPrice} ANIME`);
-      price = config.minPrice;
+    // Handle USD mode
+    if (config.priceMode === "usd") {
+      // Convert USD price to ETH
+      const { usdToEth } = await import("./price.js");
+      priceInEth = await usdToEth(price);
+      log.info(`💵 USD ${price.toFixed(2)} → ETH ${priceInEth.toFixed(6)} (offset ${config.priceOffsetPercent}%)`);
     } else {
-      log.info(`💰 Harga: tertinggi ${highestSale.toFixed(4)} × offset ${config.priceOffsetPercent}% = ${price.toFixed(4)} ANIME`);
+      priceInEth = price;
+      log.info(`💰 ETH ${priceInEth.toFixed(6)} (offset ${config.priceOffsetPercent}%)`);
     }
 
-    return price;
-  } catch {
+    // Don't list below minimum
+    if (priceInEth < config.minPrice) {
+      log.info(`💰 Price ${priceInEth.toFixed(6)} below minimum, using MIN_PRICE: ${config.minPrice} ${config.chainSymbol}`);
+      priceInEth = config.minPrice;
+    }
+
+    return priceInEth;
+  } catch (err) {
+    log.error(`Price calc error: ${err.message}`);
     return config.minPrice;
   }
 }

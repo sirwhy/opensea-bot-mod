@@ -126,6 +126,17 @@ export async function getNFTsInWallet() {
     return [];
   }
 
+  // Use TOKEN_IDS if provided (bypass blockchain scan)
+  if (config.tokenIds && config.tokenIds.length > 0) {
+    log.info(`📝 Using manual TOKEN_IDS: ${config.tokenIds.join(", ")}`);
+    return config.tokenIds.map(tokenId => ({
+      contract: config.nftContractAddress,
+      identifier: tokenId,
+      name: `#${tokenId}`,
+      collection: COLLECTION_SLUG || config.nftContractAddress,
+    }));
+  }
+
   const nftContract = new ethers.Contract(config.nftContractAddress, ERC721_ABI, provider);
 
   try {

@@ -98,6 +98,10 @@ export const config = {
   maxListings: parseInt(process.env.MAX_LISTINGS || "0"),
   cronSchedule: process.env.CRON_SCHEDULE || "*/10 * * * *",
   nftContractAddress: process.env.NFT_CONTRACT_ADDRESS || null,
+  // Token IDs to list (comma-separated, for bypassing scan)
+  tokenIds: process.env.TOKEN_IDS 
+    ? process.env.TOKEN_IDS.split(",").map(t => t.trim()).filter(t => t)
+    : [],
 };
 
 export function validateConfig() {

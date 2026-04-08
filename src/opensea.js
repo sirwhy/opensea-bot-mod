@@ -526,16 +526,17 @@ async function scanNFTsViaOwnerOf(chain, contract, walletAddress) {
       const abi = ['function ownerOf(uint256 tokenId) view returns (address)', 'function totalSupply() view returns (uint256)'];
       const nftContract = new ethers.Contract(contract, abi, provider);
       
-      // Get total supply
+      // Get total supply - scan extra to catch newly minted
       const totalSupply = Number(await nftContract.totalSupply());
-      log.info(`[AutoScan] Total supply: ${totalSupply}, scanning from ID 0...`);
+      const scanLimit = totalSupply + 100; // Extra buffer for new mints
+      log.info(`[AutoScan] Total supply: ${totalSupply}, scanning 0-${scanLimit}...`);
       
       const tokens = [];
       const batchSize = 50;
       const delayMs = 200; // Rate limit protection
       
-      // Scan in batches
-      for (let start = 0; start < totalSupply; start += batchSize) {
+      // Scan in batches (include extra for newly minted)
+      for (let start = 0; start < scanLimit; start += batchSize) {
         const end = Math.min(start + batchSize, totalSupply);
         
         const promises = [];

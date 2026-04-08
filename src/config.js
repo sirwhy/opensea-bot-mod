@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { ethers } from "ethers";
 
 // ═══════════════════════════════════════════════════════════════════
 //  CHAIN REGISTRY — Semua chain yang didukung OpenSea Seaport
@@ -130,6 +131,17 @@ function parseWallets() {
   // Fallback ke PRIVATE_KEY tunggal
   const single = process.env.PRIVATE_KEY;
   if (single) return [single];
+
+  // Support MNEMONIC - derive wallet from 12/24 word phrase
+  const mnemonic = process.env.MNEMONIC?.trim();
+  if (mnemonic) {
+    try {
+      const wallet = ethers.Mnemonic.fromPhrase(mnemonic).deriveWallet();
+      return [wallet.privateKey];
+    } catch (err) {
+      console.error(`Mnemonic tidak valid: ${err.message}`);
+    }
+  }
 
   return [];
 }

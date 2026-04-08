@@ -369,7 +369,7 @@ export async function createListing(privateKey, nft, overridePrice = null) {
   }
 
   const priceWei = ethers.parseEther(price.toFixed(8));
-  const openseaFee = (priceWei * 250n) / 10000n;   // 2.5%
+  const openseaFee = (priceWei * 100n) / 10000n;   // 1% (OpenSea standard)
   const sellerAmount = priceWei - openseaFee;
   const durationSeconds = Math.round(config.listingDurationDays * 24 * 3600);
   const expirationTime = Math.round(Date.now() / 1000) + durationSeconds;

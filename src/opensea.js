@@ -194,57 +194,65 @@ export async function getNFTsInWallet(privateKey, collection) {
   const wallet = getWallet(privateKey, chain);
   const provider = getProvider(chain);
   const label = `${slug}@${chain}`;
+  const allTokens = new Set();
 
-  // Manual TOKEN_IDS override
-  if (config.tokenIds && config.tokenIds.length > 0) {
-    log.chain(chain, `${label}: Verifikasi ${config.tokenIds.length} TOKEN_IDS...`);
-    const verified = [];
-    for (const tokenId of config.tokenIds) {
-      const owned = await verifyOwnershipOnChain(provider, contract, tokenId, wallet.address);
-      if (owned) {
-        verified.push(buildNFT(tokenId, collection, wallet.address));
-      } else {
-        log.warn(`⚠️  Token #${tokenId} tidak dimiliki (terjual?), dilewati`);
-      }
-    }
-    return verified;
-  }
-
-  // OpenSea API (realtime)
+  // 1. Try OpenSea API first (realtime)
   log.chain(chain, `${label}: Cek NFT via OpenSea API...`);
   const osNFTs = await getNFTsFromOpenSeaAPI(chain, slug, wallet.address);
 
   if (osNFTs && osNFTs.length > 0) {
-    const verified = [];
     for (const nft of osNFTs) {
       const tokenId = nft.identifier || nft.token_id;
       if (!tokenId) continue;
       const owned = await verifyOwnershipOnChain(provider, contract, tokenId, wallet.address);
       if (owned) {
-        verified.push(buildNFT(tokenId, collection, wallet.address));
+        allTokens.add(String(tokenId));
       } else {
         log.warn(`⚠️  Token #${tokenId} tidak lagi dimiliki, dilewati`);
       }
     }
-    log.chain(chain, `${label}: ${verified.length}/${osNFTs.length} NFT verified`);
-    const limit = config.maxListingsPerWallet;
-    return limit > 0 ? verified.slice(0, limit) : verified;
+    log.chain(chain, `${label}: OpenSea found ${allTokens.size} NFT`);
   }
 
-  // Auto-detect via public RPC (ownerOf scan)
-  if (!config.tokenIds || config.tokenIds.length === 0) {
-    log.chain(chain, `${label}: Auto-detect NFT via public RPC...`);
-    const autoTokens = await scanNFTsViaOwnerOf(chain, contract, wallet.address);
-    if (autoTokens && autoTokens.length > 0) {
-      log.chain(chain, `${label}: Ditemukan ${autoTokens.length} NFT via auto-scan!`);
-      const nfts = autoTokens.map(tokenId => buildNFT(tokenId, collection, wallet.address));
-      const limit = config.maxListingsPerWallet;
-      return limit > 0 ? nfts.slice(0, limit) : nfts;
+  // 2. Always auto-detect via public RPC (ownerOf scan)
+  log.chain(chain, `${label}: Auto-detect NFT via public RPC...`);
+  const autoTokens = await scanNFTsViaOwnerOf(chain, contract, wallet.address);
+  if (autoTokens && autoTokens.length > 0) {
+    for (const tokenId of autoTokens) {
+      allTokens.add(tokenId);
+    }
+    log.chain(chain, `${label}: Total ${allTokens.size} NFT (after auto-scan)`);
+  }
+
+  // Convert to NFT objects
+  const nfts = Array.from(allTokens).map(tokenId => buildNFT(tokenId, collection, wallet.address));
+
+  if (nfts.length === 0) {
+    // Last resort: try balanceOf + tokenOfOwnerByIndex
+    log.chain(chain, `${label}: Fallback scan...`);
+    try {
+      const nftContract = new ethers.Contract(contract, ERC721_ABI, provider);
+      const balance = await nftContract.balanceOf(wallet.address);
+      const total = Number(balance);
+      log.chain(chain, `${label}: Balance = ${total}`);
+      if (total > 0) {
+        try {
+          for (let i = 0; i < total; i++) {
+            const tokenId = await nftContract.tokenOfOwnerByIndex(wallet.address, i);
+            nfts.push(buildNFT(tokenId.toString(), collection, wallet.address));
+          }
+        } catch {
+          log.warn(`${label}: Contract tidak support Enumerable`);
+        }
+      }
+    } catch (err) {
+      log.error(`Fallback scan gagal: ${err.message}`);
     }
   }
 
-  // Fallback: public RPC scan
-  log.chain(chain, `${label}: Fallback blockchain scan...`);
+  const limit = config.maxListingsPerWallet;
+  return limit > 0 ? nfts.slice(0, limit) : nfts;
+}
   try {
     const nftContract = new ethers.Contract(contract, ERC721_ABI, provider);
     const balance = await nftContract.balanceOf(wallet.address);

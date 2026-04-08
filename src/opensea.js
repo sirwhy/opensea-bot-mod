@@ -184,15 +184,19 @@ export async function calculatePrice(collection) {
     source = "floor_or_last";
   }
 
+  // Fallback to default price if no base price
+  let price = 0;
   if (!basePrice || basePrice <= 0) {
     log.warn(`Tidak bisa ambil harga untuk strategi "${strategy}", pakai DEFAULT_PRICE`);
-    return { price: config.defaultPrice, source: "default_fallback" };
+    price = config.defaultPrice;
+    source = "default_fallback";
+  } else {
+    price = basePrice * (1 + offset);
   }
 
-  let price = basePrice * (1 + offset);
-
-  if (price < config.minPrice) {
-    log.info(`Harga ${price.toFixed(4)} di bawah MIN_PRICE, naik ke ${config.minPrice}`);
+  // Always ensure price is at least MIN_PRICE
+  if (!price || price <= 0 || price < config.minPrice) {
+    log.info(`Harga ${price} di bawah minimum, gunakan MIN_PRICE: ${config.minPrice}`);
     price = config.minPrice;
   }
 

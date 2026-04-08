@@ -155,7 +155,8 @@ export async function getNFTsInWallet() {
 async function getNFTsViaEvents(nftContract, walletAddress) {
   const provider = nftContract.runner.provider;
   const currentBlock = await provider.getBlockNumber();
-  const fromBlock = Math.max(0, currentBlock - 100000);
+  // Alchemy free tier only allows 10 block range for getLogs
+  const fromBlock = Math.max(0, currentBlock - 10);
 
   log.info(`Scan Transfer events dari block ${fromBlock} sampai ${currentBlock}...`);
 

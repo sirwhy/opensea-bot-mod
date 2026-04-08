@@ -484,10 +484,13 @@ export async function createListing(privateKey, nft, overridePrice = null) {
 
   const domain = {
     name: "Seaport",
-    version: "1.6",
+    version: "1.5",
     chainId: nft.chainInfo.chainId,
     verifyingContract: SEAPORT_ADDRESS,
   };
+
+  // Log the order being created for debugging
+  log.info(`Creating order: offerer=${wallet.address}, token=${nft.contract}, id=${nft.identifier}`);
 
   const signature = await wallet.signTypedData(domain, EIP712_TYPES, parameters);
 

@@ -8,8 +8,9 @@ import { log } from "./logger.js";
 // ═══════════════════════════════════════════════════════════════════
 const SEAPORT_ADDRESS = "0x0000000000000068F116a894984e2DB1123eB395";
 const OPENSEA_FEE_RECIPIENT = "0x0000a26b00c1f0df003000390027140000faa719";
-// OpenSea conduit key - use 0x00... for no conduit (OpenSea handles it)
-const CONDUIT_KEY = ethers.ZeroHash;
+// OpenSea conduit key - use OpenSea's conduit or zero hash
+// Zero hash tells Seaport to use its default conduit
+const CONDUIT_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const SEAPORT_ABI = [
   "function getCounter(address offerer) view returns (uint256)",
@@ -476,7 +477,7 @@ export async function createListing(privateKey, nft, overridePrice = null) {
     zone: ethers.ZeroAddress,
     zoneHash: ethers.ZeroHash,
     salt,
-    conduitKey: CONDUIT_KEY,
+    // conduitKey omitted - Seaport will use default
     totalOriginalConsiderationItems: 2,
     counter: counter.toString(),
   };

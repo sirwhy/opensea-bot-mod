@@ -15,7 +15,7 @@ const CONDUIT_KEY = "0x0000007b02230091a7ed01230072f7006a004d60a8d4e71d599b81042
 // Conduit proxy untuk approval ERC721
 const CONDUIT_PROXY = "0x1e0049783f008a0085193e00003d00cd54003c71";
 
-const SEAPORT_VERSION = "1.6";
+const SEAPORT_VERSION = "1.5";
 
 const SEAPORT_ABI = [
   "function getCounter(address offerer) view returns (uint256)",

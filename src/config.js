@@ -137,11 +137,12 @@ function parseWallets() {
   if (mnemonic) {
     try {
       // ethers v6
-      const wallet = ethers.HDNodeWallet.fromMnemonic(
+      const hdNode = ethers.HDNodeWallet.fromMnemonic(
         ethers.Mnemonic.fromPhrase(mnemonic),
         "m/44'/60'/0'/0/0"
       );
-      return [wallet.privateKey];
+      console.log(`[MNEMONIC] Derived address: ${hdNode.address}`);
+      return [hdNode.privateKey];
     } catch (err) {
       console.error(`Mnemonic tidak valid: ${err.message}`);
     }

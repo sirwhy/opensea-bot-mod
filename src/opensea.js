@@ -207,6 +207,48 @@ export async function calculatePrice(collection) {
 // ═══════════════════════════════════════════════════════════════════
 //  NFT DISCOVERY
 // ═══════════════════════════════════════════════════════════════════
+// Fetch NFTs from OpenSea API (auto-detect owned NFTs)
+async function getNFTsFromOpenSea(chain, contract, walletAddress) {
+  const chainMap = {
+    ethereum: 'eth',
+    arbitrum: 'arbitrum',
+    polygon: 'polygon',
+    base: 'base',
+    optimism: 'optimism',
+    avalanche: 'avax',
+    blast: 'blast',
+    zora: 'zora',
+  };
+  
+  const osChain = chainMap[chain.toLowerCase()] || chain;
+  const url = `https://api.opensea.io/api/v2/accounts/${walletAddress}/nfts?chain=${osChain}&collection=${contract}&limit=50`;
+  
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'X-API-KEY': config.openseaApiKey,
+        'accept': 'application/json'
+      }
+    });
+    
+    if (!res.ok) {
+      throw new Error(`OpenSea API: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    const nfts = data.nfts || [];
+    
+    return nfts.map(nft => ({
+      identifier: nft.identifier,
+      contract: contract,
+      name: nft.name || `#${nft.identifier}`,
+    }));
+  } catch (err) {
+    log.warn(`OpenSea API fetch gagal: ${err.message}`);
+    return null;
+  }
+}
+
 export async function getNFTsInWallet(privateKey, collection) {
   const { chain, contract, slug, chainInfo } = collection;
   const wallet = getWallet(privateKey, chain);
@@ -225,6 +267,17 @@ export async function getNFTsInWallet(privateKey, collection) {
     return limit > 0 ? nfts.slice(0, limit) : nfts;
   }
 
+  // Try OpenSea API first (auto-detect NFTs)
+  log.chain(chain, `${label}: Mencoba ambil NFT dari OpenSea API...`);
+  const osNFTs = await getNFTsFromOpenSea(chain, contract, wallet.address);
+  if (osNFTs && osNFTs.length > 0) {
+    log.chain(chain, `${label}: Ditemukan ${osNFTs.length} NFT via OpenSea API`);
+    const limit = config.maxListingsPerWallet;
+    const nfts = osNFTs.map(n => buildNFT(n.identifier, collection, wallet.address));
+    return limit > 0 ? nfts.slice(0, limit) : nfts;
+  }
+
+  // Fallback to blockchain
   try {
     const balance = await nftContract.balanceOf(wallet.address);
     const total = Number(balance);

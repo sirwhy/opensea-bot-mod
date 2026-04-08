@@ -149,6 +149,15 @@ function parseWallets() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  TELEGRAM
+// ═══════════════════════════════════════════════════════════════════
+export const telegram = {
+  enabled: process.env.TELEGRAM_ENABLED === "true",
+  botToken: process.env.TELEGRAM_BOT_TOKEN || "",
+  chatId: process.env.TELEGRAM_CHAT_ID || "",
+};
+
+// ═══════════════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════════════
 export const config = {

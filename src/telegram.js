@@ -152,3 +152,26 @@ export async function notifyError(errorMsg) {
   
   await sendTelegramMessage(msg);
 }
+/**
+ * Send cycle summary with remaining NFTs
+ */
+export async function sendCycleSummary(stats, duration) {
+  if (!telegram.enabled) return;
+
+  const total = stats.totalNfts || 0;
+  const processed = stats.listed + stats.relisted + stats.skipped + stats.errors;
+  const remaining = Math.max(0, total - processed);
+
+  const msg = `📊 <b>Cycle Summary</b>
+
+📦 Total NFT: ${total}
+✅ Listed: ${stats.listed}
+🔄 Relisted: ${stats.relisted}
+⏭️ Skipped: ${stats.skipped}
+❌ Error: ${stats.errors}
+
+📦 <b>NFT Tersisa: ${remaining}</b>
+⏱️ Duration: ${duration}s`;
+
+  await sendTelegramMessage(msg);
+}

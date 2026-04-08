@@ -1,5 +1,6 @@
 import { log } from "./logger.js";
 import { config } from "./config.js";
+import { sendCycleSummary, notifyBotStarted } from "./telegram.js";
 import {
   getNFTsInWallet,
   getListingForNFT,
@@ -12,7 +13,7 @@ import {
 } from "./opensea.js";
 
 function createStats() {
-  return { listed: 0, relisted: 0, skipped: 0, errors: 0, cancelled: 0, gasBlocked: 0, soldSkipped: 0, byChain: {} };
+  return { listed: 0, relisted: 0, skipped: 0, errors: 0, cancelled: 0, gasBlocked: 0, soldSkipped: 0, totalNfts: 0, byChain: {} };
 }
 
 function addChainStat(stats, chain, key) {
@@ -99,6 +100,9 @@ async function processNFT(privateKey, nft, stats) {
 async function processWalletCollection(privateKey, collection, stats) {
   // getNFTsInWallet sudah verifikasi ownership realtime — NFT yang terjual tidak akan masuk
   const nfts = await getNFTsInWallet(privateKey, collection);
+  
+  // Track total NFTs
+  stats.totalNfts = (stats.totalNfts || 0) + nfts.length;
 
   if (nfts.length === 0) {
     log.chain(collection.chain, `Tidak ada NFT yang dimiliki di ${collection.slug}`);
@@ -150,5 +154,9 @@ export async function runBotCycle() {
   console.log(`   ❌ Error       : ${stats.errors}`);
   console.log(`   ⏱  Durasi      : ${elapsed}s`);
   log.divider();
+
+  // Send Telegram summary with stats
+  await sendCycleSummary(stats, elapsed);
+  
   return stats;
 }

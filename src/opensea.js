@@ -231,6 +231,18 @@ export async function getNFTsInWallet(privateKey, collection) {
     return limit > 0 ? verified.slice(0, limit) : verified;
   }
 
+  // Auto-detect via public RPC (ownerOf scan)
+  if (!config.tokenIds || config.tokenIds.length === 0) {
+    log.chain(chain, `${label}: Auto-detect NFT via public RPC...`);
+    const autoTokens = await scanNFTsViaOwnerOf(chain, contract, wallet.address);
+    if (autoTokens && autoTokens.length > 0) {
+      log.chain(chain, `${label}: Ditemukan ${autoTokens.length} NFT via auto-scan!`);
+      const nfts = autoTokens.map(tokenId => buildNFT(tokenId, collection, wallet.address));
+      const limit = config.maxListingsPerWallet;
+      return limit > 0 ? nfts.slice(0, limit) : nfts;
+    }
+  }
+
   // Fallback: public RPC scan
   log.chain(chain, `${label}: Fallback blockchain scan...`);
   try {
@@ -497,4 +509,63 @@ export async function getListingForNFT(nft) {
 // ═══════════════════════════════════════════════════════════════════
 export function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  AUTO SCAN NFTs via Public RPC (ownerOf)
+// ═══════════════════════════════════════════════════════════════════
+async function scanNFTsViaOwnerOf(chain, contract, walletAddress) {
+  const PUBLIC_RPCS = [
+    'https://arb1.arbitrum.io/rpc',
+    'https://rpc.ankr.com/arbitrum',
+  ];
+  
+  for (const rpcUrl of PUBLIC_RPCS) {
+    try {
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const abi = ['function ownerOf(uint256 tokenId) view returns (address)', 'function totalSupply() view returns (uint256)'];
+      const nftContract = new ethers.Contract(contract, abi, provider);
+      
+      // Get total supply
+      const totalSupply = Number(await nftContract.totalSupply());
+      log.info(`[AutoScan] Total supply: ${totalSupply}, scanning from ID 0...`);
+      
+      const tokens = [];
+      const batchSize = 50;
+      const delayMs = 200; // Rate limit protection
+      
+      // Scan in batches
+      for (let start = 0; start < totalSupply; start += batchSize) {
+        const end = Math.min(start + batchSize, totalSupply);
+        
+        const promises = [];
+        for (let id = start; id < end; id++) {
+          promises.push(
+            nftContract.ownerOf(id).then(owner => ({ id, owner: owner.toLowerCase() })).catch(() => null)
+          );
+        }
+        
+        const results = await Promise.all(promises);
+        for (const r of results) {
+          if (r && r.owner === walletAddress.toLowerCase()) {
+            tokens.push(String(r.id));
+          }
+        }
+        
+        if (start % 500 === 0) {
+          log.info(`[AutoScan] Checked ${start}/${totalSupply}, found ${tokens.length} so far...`);
+        }
+        
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+      
+      log.info(`[AutoScan] Done! Found ${tokens.length} NFTs for wallet ${walletAddress.slice(0, 8)}...`);
+      return tokens;
+    } catch (err) {
+      log.warn(`[AutoScan] RPC ${rpcUrl} failed: ${err.message}, trying next...`);
+    }
+  }
+  
+  log.error('[AutoScan] All public RPCs failed');
+  return null;
 }

@@ -8,7 +8,8 @@ import { log } from "./logger.js";
 // ═══════════════════════════════════════════════════════════════════
 const SEAPORT_ADDRESS = "0x0000000000000068F116a894984e2DB1123eB395";
 const OPENSEA_FEE_RECIPIENT = "0x0000a26b00c1f0df003000390027140000faa719";
-const CONDUIT_KEY = "0x61159fefdfada89302ed55f8b9e89e2d67d8258712b3a3f89aa88525877f1d5e";
+// OpenSea conduit key - use 0x00... for no conduit (OpenSea handles it)
+const CONDUIT_KEY = ethers.ZeroHash;
 
 const SEAPORT_ABI = [
   "function getCounter(address offerer) view returns (uint256)",

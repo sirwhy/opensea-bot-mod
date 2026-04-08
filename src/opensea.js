@@ -37,6 +37,7 @@ const EIP712_TYPES = {
     { name: "endTime", type: "uint256" },
     { name: "zoneHash", type: "bytes32" },
     { name: "salt", type: "bytes32" },
+    { name: "conduitKey", type: "bytes32" },
     { name: "counter", type: "uint256" },
   ],
   OfferItem: [
@@ -476,6 +477,7 @@ export async function createListing(privateKey, nft, overridePrice = null) {
     zone: "0x0000000000000000000000000000000000000000",
     zoneHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
     salt: salt,
+    conduitKey: "0x0000000000000000000000000000000000000000000000000000000000000000",
     totalOriginalConsiderationItems: "2",
     counter: String(counter),
   };

@@ -3,36 +3,43 @@ import "dotenv/config";
 // Public RPC nodes (no API key needed)
 const PUBLIC_RPCS = {
   ethereum: [
+    "https://1rpc.io/eth",
     "https://eth.llamarpc.com",
-    "https://ethereum-rpc.publicnode.com",
     "https://rpc.ankr.com/eth",
+    "https://ethereum-rpc.publicnode.com",
   ],
   polygon: [
+    "https://1rpc.io/matic",
     "https://polygon-rpc.com",
-    "https://polygon.llamarpc.com",
     "https://rpc.ankr.com/polygon",
+    "https://polygon.llamarpc.com",
   ],
   base: [
+    "https://1rpc.io/base",
     "https://base.llamarpc.com",
-    "https://base-rpc.publicnode.com",
     "https://rpc.ankr.com/base",
+    "https://base-rpc.publicnode.com",
   ],
   arbitrum: [
+    "https://1rpc.io/arb",
     "https://arb1.arbitrum.io/rpc",
-    "https://arbitrum.llamarpc.com",
     "https://rpc.ankr.com/arbitrum",
+    "https://arbitrum.llamarpc.com",
   ],
   optimism: [
+    "https://1rpc.io/op",
     "https://optimism.llamarpc.com",
-    "https://optimism-rpc.publicnode.com",
     "https://rpc.ankr.com/optimism",
+    "https://optimism-rpc.publicnode.com",
   ],
   avalanche: [
+    "https://1rpc.io/avax",
     "https://api.avax.network/ext/bc/C/rpc",
-    "https://avalanche.llamarpc.com",
     "https://rpc.ankr.com/avalanche",
+    "https://avalanche.llamarpc.com",
   ],
   klaytn: [
+    "https://1rpc.io/klay",
     "https://kaia.llamarpc.com",
     "https://rpc.ankr.com/klaytn",
   ],
@@ -40,17 +47,18 @@ const PUBLIC_RPCS = {
     "https://rpc.animechain.io",
   ],
   bsc: [
+    "https://1rpc.io/bsc",
     "https://binance.llamarpc.com",
     "https://bsc.llamarpc.com",
     "https://rpc.ankr.com/bsc",
   ],
   celo: [
+    "https://1rpc.io/celo",
     "https://rpc.ankr.com/celo",
-    "https://celo.llamarpc.com",
   ],
   fantom: [
+    "https://1rpc.io/ftm",
     "https://rpc.ankr.com/fantom",
-    "https://fantom.llamarpc.com",
   ],
 };
 

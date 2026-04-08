@@ -397,7 +397,7 @@ export async function createListing(privateKey, nft, overridePrice = null) {
   const expirationTime = nowSec + durationSeconds;
 
   const priceWei = ethers.parseEther(price.toFixed(8));
-  const openseaFee = (priceWei * 250n) / 10000n; // 2.5%
+  const openseaFee = (priceWei * 100n) / 10000n; // 1% (100 bp)
   const sellerAmount = priceWei - openseaFee;
 
   const seaport = new ethers.Contract(SEAPORT_ADDRESS, SEAPORT_ABI, provider);

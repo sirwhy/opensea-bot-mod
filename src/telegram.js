@@ -5,7 +5,10 @@ import { telegram } from "./config.js";
  * Send message to Telegram
  */
 export function sendTelegramMessage(message, parseMode = "HTML") {
-  if (!telegram.enabled) return;
+  if (!telegram.enabled) {
+    console.log(`[TELEGRAM] Disabled - enabled: ${telegram.enabled}, token: ${telegram.botToken ? 'set' : 'missing'}`);
+    return;
+  }
 
   const data = JSON.stringify({
     chat_id: telegram.chatId,

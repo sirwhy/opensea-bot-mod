@@ -1,5 +1,60 @@
 import "dotenv/config";
 
+// Public RPC nodes (no API key needed)
+const PUBLIC_RPCS = {
+  ethereum: [
+    "https://eth.llamarpc.com",
+    "https://ethereum-rpc.publicnode.com",
+    "https://rpc.ankr.com/eth",
+  ],
+  polygon: [
+    "https://polygon.llamarpc.com",
+    "https://polygon-rpc.com",
+    "https://rpc.ankr.com/polygon",
+  ],
+  base: [
+    "https://base.llamarpc.com",
+    "https://base-rpc.publicnode.com",
+    "https://rpc.ankr.com/base",
+  ],
+  arbitrum: [
+    "https://arbitrum.llamarpc.com",
+    "https://arb1.arbitrum.io/rpc",
+    "https://rpc.ankr.com/arbitrum",
+  ],
+  optimism: [
+    "https://optimism.llamarpc.com",
+    "https://optimism-rpc.publicnode.com",
+    "https://rpc.ankr.com/optimism",
+  ],
+  avalanche: [
+    "https://avalanche.llamarpc.com",
+    "https://api.avax.network/ext/bc/C/rpc",
+    "https://rpc.ankr.com/avalanche",
+  ],
+  klaytn: [
+    "https://klaytn.llamarpc.com",
+    "https://kaia.llamarpc.com",
+    "https://rpc.ankr.com/klaytn",
+  ],
+  animechain: [
+    "https://rpc.animechain.io",
+  ],
+  bsc: [
+    "https://bsc.llamarpc.com",
+    "https://binance.llamarpc.com",
+    "https://rpc.ankr.com/bsc",
+  ],
+  celo: [
+    "https://celo.llamarpc.com",
+    "https://rpc.ankr.com/celo",
+  ],
+  fantom: [
+    "https://fantom.llamarpc.com",
+    "https://rpc.ankr.com/fantom",
+  ],
+};
+
 const CHAIN_MAP = {
   ethereum: { name: "mainnet", chainId: 1, symbol: "ETH" },
   polygon: { name: "matic", chainId: 137, symbol: "MATIC" },
@@ -8,15 +63,30 @@ const CHAIN_MAP = {
   optimism: { name: "optimism", chainId: 10, symbol: "ETH" },
   avalanche: { name: "avalanche", chainId: 43114, symbol: "AVAX" },
   klaytn: { name: "klaytn", chainId: 8217, symbol: "KLAY" },
+  bsc: { name: "bsc", chainId: 56, symbol: "BNB" },
+  celo: { name: "celo", chainId: 42220, symbol: "CELO" },
+  fantom: { name: "fantom", chainId: 250, symbol: "FTM" },
   animechain: { name: "animechain", chainId: 69000, symbol: "ANIME" },
 };
 
 const chainKey = process.env.CHAIN?.toLowerCase() || "ethereum";
 const chainInfo = CHAIN_MAP[chainKey] || CHAIN_MAP["ethereum"];
+const publicRpcList = PUBLIC_RPCS[chainKey] || PUBLIC_RPCS["ethereum"];
+
+// Get RPC - use user provided or pick random public RPC
+function getRpcUrl() {
+  if (process.env.RPC_URL && process.env.RPC_URL.trim() !== "") {
+    return process.env.RPC_URL;
+  }
+  // Use random public RPC from the list
+  const randomRpc = publicRpcList[Math.floor(Math.random() * publicRpcList.length)];
+  console.log(`🔗 Using public RPC: ${randomRpc}`);
+  return randomRpc;
+}
 
 export const config = {
   privateKey: process.env.PRIVATE_KEY,
-  rpcUrl: process.env.RPC_URL,
+  rpcUrl: getRpcUrl(),
   openseaApiKey: process.env.OPENSEA_API_KEY,
   chain: chainInfo.name,
   chainName: chainKey,
@@ -33,11 +103,19 @@ export const config = {
 };
 
 export function validateConfig() {
-  const required = ["PRIVATE_KEY", "RPC_URL", "OPENSEA_API_KEY"];
+  const required = ["PRIVATE_KEY", "OPENSEA_API_KEY"];
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     throw new Error(
-      `❌ Config berikut belum diisi di file .env:\n   ${missing.join(", ")}\n\n   Salin .env.example ke .env lalu isi nilainya.`
+      `❌ Config berikut belum diisi di file .env:\n   ${missing.join(", ")}\n\n   Salin .env.example ke .env lalu isi nilainya.\n\n   RPC_URL bersifat opsional - bot akan menggunakan public RPC jika tidak diisi.`
     );
   }
+}
+
+export function getSupportedChains() {
+  return Object.keys(CHAIN_MAP).map((chain) => ({
+    name: chain,
+    symbol: CHAIN_MAP[chain].symbol,
+    chainId: CHAIN_MAP[chain].chainId,
+  }));
 }

@@ -153,39 +153,10 @@ export async function getNFTsInWallet() {
 }
 
 async function getNFTsViaEvents(nftContract, walletAddress) {
-  const provider = nftContract.runner.provider;
-  const currentBlock = await provider.getBlockNumber();
-  // Alchemy free tier only allows 10 block range for getLogs
-  const fromBlock = Math.max(0, currentBlock - 10);
-
-  log.info(`Scan Transfer events dari block ${fromBlock} sampai ${currentBlock}...`);
-
-  const filterIn = nftContract.filters.Transfer(null, walletAddress);
-  const eventsIn = await nftContract.queryFilter(filterIn, fromBlock, currentBlock);
-  const filterOut = nftContract.filters.Transfer(walletAddress, null);
-  const eventsOut = await nftContract.queryFilter(filterOut, fromBlock, currentBlock);
-
-  const owned = new Set();
-  for (const e of eventsIn) owned.add(e.args.tokenId.toString());
-  for (const e of eventsOut) owned.delete(e.args.tokenId.toString());
-
-  const nfts = [];
-  for (const tokenId of owned) {
-    try {
-      const owner = await nftContract.ownerOf(tokenId);
-      if (owner.toLowerCase() === walletAddress.toLowerCase()) {
-        nfts.push({
-          identifier: tokenId,
-          contract: config.nftContractAddress,
-          collection: COLLECTION_SLUG,
-          name: "Azuki Gate #0",
-        });
-      }
-    } catch {}
-  }
-
-  log.success(`Ditemukan ${nfts.length} NFT via event scan`);
-  return nfts;
+  // Skip event scanning - Alchemy free tier doesn't support it
+  log.warn("⚠️ Event scan skipped - Alchemy free tier limit");
+  log.warn("💡 Gunakan contract dengan tokenOfOwnerByIndex()");
+  return [];
 }
 
 export async function calculatePrice(nft) {

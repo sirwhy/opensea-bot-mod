@@ -67,16 +67,17 @@ const CHAIN_MAP = {
 const chainKey = process.env.CHAIN?.toLowerCase() || "ethereum";
 const chainInfo = CHAIN_MAP[chainKey] || CHAIN_MAP["ethereum"];
 
-// Get RPC - use user provided or fallback to Ankr (most reliable)
+// Get RPC - user provided or fallback
 function getRpcUrl() {
+  // User provided RPC takes priority
   if (process.env.RPC_URL && process.env.RPC_URL.trim() !== "") {
     return process.env.RPC_URL;
   }
   
-  // Use Ankr as primary (most reliable for Railway)
-  const ankrRpc = `https://rpc.ankr.com/${chainKey === 'ethereum' ? 'eth' : chainKey}`;
-  console.log(`🔗 Using Ankr RPC: ${ankrRpc}`);
-  return ankrRpc;
+  // Default to Alchemy for Arbitrum
+  const defaultRpc = "https://arb-mainnet.g.alchemy.com/v2/N6qYXdZt1LOoaPJ3EWpfB";
+  console.log(`🔗 Using default Alchemy RPC: ${defaultRpc}`);
+  return defaultRpc;
 }
 
 export const config = {

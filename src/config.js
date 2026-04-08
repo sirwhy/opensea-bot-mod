@@ -135,13 +135,16 @@ function parseWallets() {
   // Support MNEMONIC - derive wallet from 12/24 word phrase
   const mnemonic = process.env.MNEMONIC?.trim();
   if (mnemonic) {
+    // Support custom derivation path via MNEMONIC_PATH env var
+    const derivationPath = process.env.MNEMONIC_PATH || "m/44'/60'/0'/0/0";
+    
     try {
       // ethers v6
       const hdNode = ethers.HDNodeWallet.fromMnemonic(
         ethers.Mnemonic.fromPhrase(mnemonic),
-        "m/44'/60'/0'/0/0"
+        derivationPath
       );
-      console.log(`[MNEMONIC] Derived address: ${hdNode.address}`);
+      console.log(`[MNEMONIC] Derived address: ${hdNode.address} (path: ${derivationPath})`);
       return [hdNode.privateKey];
     } catch (err) {
       console.error(`Mnemonic tidak valid: ${err.message}`);

@@ -196,7 +196,23 @@ export async function getNFTsInWallet(privateKey, collection) {
   const label = `${slug}@${chain}`;
   const allTokens = new Set();
 
-  // 1. Try OpenSea API first (realtime)
+  // 1. If TOKEN_IDS is set, use only that
+  if (config.tokenIds && config.tokenIds.length > 0) {
+    log.chain(chain, `${label}: Verifikasi ${config.tokenIds.length} TOKEN_IDS...`);
+    for (const tokenId of config.tokenIds) {
+      const owned = await verifyOwnershipOnChain(provider, contract, tokenId, wallet.address);
+      if (owned) {
+        allTokens.add(String(tokenId));
+      } else {
+        log.warn(`⚠️  Token #${tokenId} tidak dimiliki (terjual?), dilewati`);
+      }
+    }
+    const nfts = Array.from(allTokens).map(tokenId => buildNFT(tokenId, collection, wallet.address));
+    const limit = config.maxListingsPerWallet;
+    return limit > 0 ? nfts.slice(0, limit) : nfts;
+  }
+
+  // 2. Try OpenSea API first (realtime)
   log.chain(chain, `${label}: Cek NFT via OpenSea API...`);
   const osNFTs = await getNFTsFromOpenSeaAPI(chain, slug, wallet.address);
 
@@ -214,14 +230,20 @@ export async function getNFTsInWallet(privateKey, collection) {
     log.chain(chain, `${label}: OpenSea found ${allTokens.size} NFT`);
   }
 
-  // 2. Always auto-detect via public RPC (ownerOf scan)
-  log.chain(chain, `${label}: Auto-detect NFT via public RPC...`);
-  const autoTokens = await scanNFTsViaOwnerOf(chain, contract, wallet.address);
-  if (autoTokens && autoTokens.length > 0) {
-    for (const tokenId of autoTokens) {
-      allTokens.add(tokenId);
+  // 3. Only auto-detect if OpenSea returned nothing
+  if (allTokens.size === 0) {
+    log.chain(chain, `${label}: Auto-detect NFT via public RPC...`);
+    try {
+      const autoTokens = await scanNFTsViaOwnerOf(chain, contract, wallet.address);
+      if (autoTokens && autoTokens.length > 0) {
+        for (const tokenId of autoTokens) {
+          allTokens.add(tokenId);
+        }
+        log.chain(chain, `${label}: Total ${allTokens.size} NFT (after auto-scan)`);
+      }
+    } catch (err) {
+      log.warn(`Auto-scan failed: ${err.message}`);
     }
-    log.chain(chain, `${label}: Total ${allTokens.size} NFT (after auto-scan)`);
   }
 
   // Convert to NFT objects

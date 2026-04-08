@@ -253,31 +253,6 @@ export async function getNFTsInWallet(privateKey, collection) {
   const limit = config.maxListingsPerWallet;
   return limit > 0 ? nfts.slice(0, limit) : nfts;
 }
-  try {
-    const nftContract = new ethers.Contract(contract, ERC721_ABI, provider);
-    const balance = await nftContract.balanceOf(wallet.address);
-    const total = Number(balance);
-    log.chain(chain, `${label}: Balance = ${total}`);
-    if (total === 0) return [];
-
-    const nfts = [];
-    try {
-      for (let i = 0; i < total; i++) {
-        const tokenId = await nftContract.tokenOfOwnerByIndex(wallet.address, i);
-        nfts.push(buildNFT(tokenId.toString(), collection, wallet.address));
-      }
-    } catch {
-      const eventNFTs = await getNFTsViaEvents(nftContract, wallet.address, collection, provider);
-      nfts.push(...eventNFTs);
-    }
-
-    const limit = config.maxListingsPerWallet;
-    return limit > 0 ? nfts.slice(0, limit) : nfts;
-  } catch (err) {
-    log.error(`Scan gagal ${label}: ${err.message}`);
-    return [];
-  }
-}
 
 function buildNFT(tokenId, collection, walletAddress) {
   return {

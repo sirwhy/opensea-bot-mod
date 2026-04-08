@@ -6,7 +6,7 @@ import { log } from "./logger.js";
 const SEAPORT_ADDRESS = "0x0000000000000068F116a894984e2DB1123eB395";
 const OPENSEA_FEE_RECIPIENT = "0x0000a26b00c1f0df003000390027140000faa719";
 const CONDUIT_KEY = "0x61159fefdfada89302ed55f8b9e89e2d67d8258712b3a3f89aa88525877f1d5e";
-const COLLECTION_SLUG = "gate-0";
+const COLLECTION_SLUG = process.env.COLLECTION_SLUG || "";
 
 const SEAPORT_ABI = [
   "function getCounter(address offerer) view returns (uint256)",
@@ -57,6 +57,11 @@ let lastSaleFetchTime = 0;
 const CACHE_MS = 30000;
 
 export async function getLastSalePrice() {
+  // If no collection slug, return default price
+  if (!COLLECTION_SLUG) {
+    return config.defaultPrice;
+  }
+
   const now = Date.now();
   if (cachedLastSale && now - lastSaleFetchTime < CACHE_MS) {
     return cachedLastSale;
@@ -70,15 +75,17 @@ export async function getLastSalePrice() {
 
     if (!res.ok) {
       log.warn(`Gagal ambil last sale: ${res.statusText}`);
-      return cachedLastSale || config.minPrice;
+      return cachedLastSale || config.defaultPrice;
     }
 
     const data = await res.json();
     const sales = data.asset_events || [];
 
     if (sales.length === 0) {
-      log.warn("Belum ada sale event, pakai harga minimum");
-      return cachedLastSale || config.minPrice;
+      log.warn("Belum ada sale event, pakai harga default");
+      cachedLastSale = config.defaultPrice;
+      lastSaleFetchTime = now;
+      return config.defaultPrice;
     }
 
     const prices = sales

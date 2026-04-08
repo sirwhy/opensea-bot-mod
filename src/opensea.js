@@ -103,8 +103,12 @@ export async function getFloorPrice(collectionSlug, chainName) {
     }
 
     const data = await res.json();
-    const floor = data.total?.floor_price || data.stats?.floor_price || null;
-    return floor ? parseFloat(floor) : null;
+    // Handle scientific notation (e.g., 2.999999999999E-6)
+    const floorRaw = data.total?.floor_price || data.stats?.floor_price || null;
+    if (!floorRaw) return null;
+    const floor = parseFloat(floorRaw);
+    // If floor is 0 or very small, return null to trigger fallback
+    return floor && floor > 0.000001 ? floor : null;
   } catch (err) {
     log.warn(`Error ambil floor price: ${err.message}`);
     return null;

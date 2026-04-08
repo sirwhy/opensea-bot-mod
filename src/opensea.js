@@ -8,9 +8,8 @@ import { log } from "./logger.js";
 // ═══════════════════════════════════════════════════════════════════
 const SEAPORT_ADDRESS = "0x0000000000000068F116a894984e2DB1123eB395";
 const OPENSEA_FEE_RECIPIENT = "0x0000a26b00c1f0df003000390027140000faa719";
-// OpenSea conduit key - use OpenSea's conduit or zero hash
-// Zero hash tells Seaport to use its default conduit
-const CONDUIT_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000";
+// OpenSea conduit key for Arbitrum - from the error message
+const CONDUIT_KEY = "0x0000007b02230091a7ed01230072f70064004d60a8d4e71d599b8104250f0000";
 
 const SEAPORT_ABI = [
   "function getCounter(address offerer) view returns (uint256)",

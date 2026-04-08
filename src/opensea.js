@@ -37,7 +37,6 @@ const EIP712_TYPES = {
     { name: "endTime", type: "uint256" },
     { name: "zoneHash", type: "bytes32" },
     { name: "salt", type: "bytes32" },
-    { name: "conduitKey", type: "bytes32" },
     { name: "counter", type: "uint256" },
   ],
   OfferItem: [
@@ -448,7 +447,7 @@ export async function createListing(privateKey, nft, overridePrice = null) {
       {
         itemType: 2,
         token: nft.contract,
-        identifierOrCriteria: nft.identifier,
+        identifierOrCriteria: String(nft.identifier),
         startAmount: "1",
         endAmount: "1",
       },
@@ -456,7 +455,7 @@ export async function createListing(privateKey, nft, overridePrice = null) {
     consideration: [
       {
         itemType: 0,
-        token: ethers.ZeroAddress,
+        token: "0x0000000000000000000000000000000000000000",
         identifierOrCriteria: "0",
         startAmount: sellerAmount.toString(),
         endAmount: sellerAmount.toString(),
@@ -464,22 +463,21 @@ export async function createListing(privateKey, nft, overridePrice = null) {
       },
       {
         itemType: 0,
-        token: ethers.ZeroAddress,
+        token: "0x0000000000000000000000000000000000000000",
         identifierOrCriteria: "0",
         startAmount: openseaFee.toString(),
         endAmount: openseaFee.toString(),
         recipient: OPENSEA_FEE_RECIPIENT,
       },
     ],
-    startTime: Math.round(Date.now() / 1000).toString(),
-    endTime: expirationTime.toString(),
-    orderType: 0,
-    zone: ethers.ZeroAddress,
-    zoneHash: ethers.ZeroHash,
-    salt,
-    // conduitKey omitted - Seaport will use default
-    totalOriginalConsiderationItems: 2,
-    counter: counter.toString(),
+    startTime: String(Math.round(Date.now() / 1000)),
+    endTime: String(expirationTime),
+    orderType: "0",
+    zone: "0x0000000000000000000000000000000000000000",
+    zoneHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+    salt: salt,
+    totalOriginalConsiderationItems: "2",
+    counter: String(counter),
   };
 
   const domain = {

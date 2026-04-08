@@ -1,24 +1,23 @@
 import { log } from "./logger.js";
-import {
-  getNFTsInWallet,
-  getListingForNFT,
-  createListing,
-  cancelListing,
+import { 
+  getNFTsInWallet, 
+  getListingForNFT, 
+  createListing, 
+  cancelListing, 
   calculatePrice,
-  getFloorPrice,
 } from "./opensea.js";
 import { config } from "./config.js";
-import { 
-  notifyListed, 
-  notifyRelisted, 
+import {
+  notifyListed,
+  notifyRelisted,
   notifySold,
   notifyFloorPrice,
   notifyBotStarted,
-  notifyError 
+  notifyError
 } from "./telegram.js";
 
 export async function runBotCycle() {
-  log.title("🤖 OPENSEA AUTO BOT — MULAI SIKLUS");
+  log.title("🤖 OPENSEA AUTO BOT - MULAI SIKLUS");
   log.divider();
 
   try {
@@ -68,10 +67,10 @@ export async function runBotCycle() {
 
           // Notify relisted
           notifyRelisted(
-            nft.identifier, 
-            nft.collection || nft.name, 
-            currentPrice.toFixed(4), 
-            targetPrice.toFixed(4), 
+            nft.identifier,
+            nft.collection || nft.name,
+            currentPrice.toFixed(4),
+            targetPrice.toFixed(4),
             config.chainSymbol
           );
         } else {
@@ -80,9 +79,9 @@ export async function runBotCycle() {
 
           // Notify new listing
           notifyListed(
-            nft.identifier, 
-            nft.collection || nft.name, 
-            targetPrice.toFixed(4), 
+            nft.identifier,
+            nft.collection || nft.name,
+            targetPrice.toFixed(4),
             config.chainSymbol
           );
         }
@@ -91,7 +90,7 @@ export async function runBotCycle() {
         log.success(`✅ Listed: ${label} @ ${price.toFixed(4)} ${config.chainSymbol}`);
 
       } catch (err) {
-        log.error(`Gagal: ${label} — ${err.message}`);
+        log.error(`Gagal: ${label} - ${err.message}`);
         errors++;
       }
 

@@ -5,8 +5,12 @@ import { log } from "./logger.js";
 let provider, wallet;
 
 export function initWallet() {
-  // Single RPC from config
   const rpcUrl = config.rpcUrl;
+  
+  console.log("=== Wallet Init Debug ===");
+  console.log("RPC URL:", rpcUrl);
+  console.log("Chain:", config.chainName);
+  console.log("============================");
   
   try {
     provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -14,7 +18,7 @@ export function initWallet() {
     log.success(`Wallet terhubung: ${wallet.address}`);
     return { provider, wallet };
   } catch (err) {
-    log.error(`❌ Wallet init failed: ${err.message}`);
+    console.error("Wallet init error:", err.message);
     throw err;
   }
 }

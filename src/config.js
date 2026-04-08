@@ -183,6 +183,11 @@ export const config = {
   // --- Delay antar operasi (ms) ---
   delayBetweenNFTs: parseInt(process.env.DELAY_BETWEEN_NFTS || "1500"),
   delayAfterCancel: parseInt(process.env.DELAY_AFTER_CANCEL || "3000"),
+
+  // Manual token IDs to bypass blockchain scan
+  tokenIds: process.env.TOKEN_IDS 
+    ? process.env.TOKEN_IDS.split(",").map(t => t.trim()).filter(t => t)
+    : [],
 };
 
 export function validateConfig() {

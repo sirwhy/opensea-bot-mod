@@ -215,6 +215,16 @@ export async function getNFTsInWallet(privateKey, collection) {
 
   const label = `${slug}@${chain}`;
 
+  // Use manual TOKEN_IDS if provided (bypass blockchain scan)
+  if (config.tokenIds && config.tokenIds.length > 0) {
+    log.chain(chain, `${label}: Using manual TOKEN_IDS: ${config.tokenIds.join(", ")}`);
+    const nfts = config.tokenIds.map(tokenId => 
+      buildNFT(tokenId, collection, wallet.address)
+    );
+    const limit = config.maxListingsPerWallet;
+    return limit > 0 ? nfts.slice(0, limit) : nfts;
+  }
+
   try {
     const balance = await nftContract.balanceOf(wallet.address);
     const total = Number(balance);

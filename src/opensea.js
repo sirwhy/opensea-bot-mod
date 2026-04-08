@@ -207,7 +207,7 @@ export async function createListing(nft) {
   const priceWei = ethers.parseEther(price.toFixed(8));
   const openseaFee = priceWei * 100n / 10000n;
   const sellerAmount = priceWei - openseaFee;
-  const expirationTime = Math.round(Date.now() / 1000) + config.listingDurationMinutes * 60;
+  const expirationTime = Math.round(Date.now() / 1000) + config.listingDurationSeconds;
 
   const seaport = new ethers.Contract(SEAPORT_ADDRESS, SEAPORT_ABI, provider);
   const counter = await seaport.getCounter(wallet.address);

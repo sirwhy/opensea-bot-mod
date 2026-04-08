@@ -38,7 +38,7 @@ async function main() {
   log.info(`Jadwal      : ${chalk.bold(config.cronSchedule)}`);
   log.info(`Follow floor: ${chalk.bold(config.followFloorPrice ? "Ya" : "Tidak")}`);
   log.info(`Offset harga: ${chalk.bold(config.priceOffsetPercent + "%")}`);
-  log.info(`Durasi list : ${chalk.bold(config.listingDurationMinutes + " menit")}`);
+  log.info(`Durasi list : ${chalk.bold(config.listingDurationSeconds + " detik")} (${config.listingDurationSeconds/60} menit)`);
   log.divider();
 
   log.info("Menjalankan siklus pertama...");

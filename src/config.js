@@ -92,13 +92,16 @@ export const config = {
   chainName: chainKey,
   chainId: chainInfo.chainId,
   chainSymbol: chainInfo.symbol,
-  defaultPrice: parseFloat(process.env.DEFAULT_PRICE || "0.2"),
-  minPrice: parseFloat(process.env.MIN_PRICE || "0.2"),
-  followFloorPrice: process.env.FOLLOW_FLOOR_PRICE === "true",
-  priceOffsetPercent: parseFloat(process.env.PRICE_OFFSET_PERCENT || "0"),
-  listingDurationMinutes: parseInt(process.env.LISTING_DURATION_MINUTES || "15"),
+  // Default price - akan di-override oleh floor price jika followFloorPrice=true
+  defaultPrice: parseFloat(process.env.DEFAULT_PRICE || "0.01"),
+  minPrice: parseFloat(process.env.MIN_PRICE || "0.001"),
+  // Auto-detect floor price - default TRUE
+  followFloorPrice: process.env.FOLLOW_FLOOR_PRICE !== "false",
+  priceOffsetPercent: parseFloat(process.env.PRICE_OFFSET_PERCENT || "-10"),
+  // Listing 10 menit = 600 detik (OpenSea pakai detik)
+  listingDurationSeconds: parseInt(process.env.LISTING_DURATION_SECONDS || "600"),
   maxListings: parseInt(process.env.MAX_LISTINGS || "0"),
-  cronSchedule: process.env.CRON_SCHEDULE || "* * * * *",
+  cronSchedule: process.env.CRON_SCHEDULE || "*/10 * * * *", // Default 10 menit
   nftContractAddress: process.env.NFT_CONTRACT_ADDRESS || null,
 };
 

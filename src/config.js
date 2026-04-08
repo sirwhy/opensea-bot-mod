@@ -1,64 +1,52 @@
 import "dotenv/config";
 
-// Public RPC nodes (no API key needed)
+// Public RPC nodes - using reliable DNS-resolvable endpoints
 const PUBLIC_RPCS = {
   ethereum: [
+    "https://rpc.ankr.com/eth",
     "https://1rpc.io/eth",
     "https://eth.llamarpc.com",
-    "https://rpc.ankr.com/eth",
-    "https://ethereum-rpc.publicnode.com",
   ],
   polygon: [
-    "https://1rpc.io/matic",
-    "https://polygon-rpc.com",
     "https://rpc.ankr.com/polygon",
+    "https://1rpc.io/matic",
     "https://polygon.llamarpc.com",
   ],
   base: [
+    "https://rpc.ankr.com/base",
     "https://1rpc.io/base",
     "https://base.llamarpc.com",
-    "https://rpc.ankr.com/base",
-    "https://base-rpc.publicnode.com",
   ],
   arbitrum: [
+    "https://rpc.ankr.com/arbitrum",
     "https://1rpc.io/arb",
     "https://arb1.arbitrum.io/rpc",
-    "https://rpc.ankr.com/arbitrum",
-    "https://arbitrum.llamarpc.com",
   ],
   optimism: [
+    "https://rpc.ankr.com/optimism",
     "https://1rpc.io/op",
     "https://optimism.llamarpc.com",
-    "https://rpc.ankr.com/optimism",
-    "https://optimism-rpc.publicnode.com",
   ],
   avalanche: [
+    "https://rpc.ankr.com/avalanche",
     "https://1rpc.io/avax",
     "https://api.avax.network/ext/bc/C/rpc",
-    "https://rpc.ankr.com/avalanche",
-    "https://avalanche.llamarpc.com",
   ],
   klaytn: [
-    "https://1rpc.io/klay",
-    "https://kaia.llamarpc.com",
     "https://rpc.ankr.com/klaytn",
-  ],
-  animechain: [
-    "https://rpc.animechain.io",
+    "https://1rpc.io/klay",
   ],
   bsc: [
-    "https://1rpc.io/bsc",
-    "https://binance.llamarpc.com",
-    "https://bsc.llamarpc.com",
     "https://rpc.ankr.com/bsc",
+    "https://1rpc.io/bsc",
   ],
   celo: [
-    "https://1rpc.io/celo",
     "https://rpc.ankr.com/celo",
+    "https://1rpc.io/celo",
   ],
   fantom: [
-    "https://1rpc.io/ftm",
     "https://rpc.ankr.com/fantom",
+    "https://1rpc.io/ftm",
   ],
 };
 
@@ -79,23 +67,16 @@ const CHAIN_MAP = {
 const chainKey = process.env.CHAIN?.toLowerCase() || "ethereum";
 const chainInfo = CHAIN_MAP[chainKey] || CHAIN_MAP["ethereum"];
 
-// Get RPC - use user provided or pick random public RPC
+// Get RPC - use user provided or fallback to Ankr (most reliable)
 function getRpcUrl() {
-  // If user provided RPC_URL, use it
   if (process.env.RPC_URL && process.env.RPC_URL.trim() !== "") {
     return process.env.RPC_URL;
   }
   
-  // Get RPC list for current chain
-  const rpcs = PUBLIC_RPCS[chainKey] || PUBLIC_RPCS["ethereum"];
-  if (!rpcs || rpcs.length === 0) {
-    throw new Error(`No public RPCs available for chain: ${chainKey}`);
-  }
-  
-  // Use random public RPC from the list
-  const randomRpc = rpcs[Math.floor(Math.random() * rpcs.length)];
-  console.log(`🔗 Using public RPC: ${randomRpc}`);
-  return randomRpc;
+  // Use Ankr as primary (most reliable for Railway)
+  const ankrRpc = `https://rpc.ankr.com/${chainKey === 'ethereum' ? 'eth' : chainKey}`;
+  console.log(`🔗 Using Ankr RPC: ${ankrRpc}`);
+  return ankrRpc;
 }
 
 export const config = {
@@ -106,21 +87,15 @@ export const config = {
   chainName: chainKey,
   chainId: chainInfo.chainId,
   chainSymbol: chainInfo.symbol,
-  // Price mode: "eth" atau "usd"
   priceMode: (process.env.PRICE_MODE || "eth").toLowerCase(),
-  // Default price dalam ETH atau USD
   defaultPrice: parseFloat(process.env.DEFAULT_PRICE || "0.01"),
   minPrice: parseFloat(process.env.MIN_PRICE || "0.001"),
-  // Auto-detect floor price - default TRUE
   followFloorPrice: process.env.FOLLOW_FLOOR_PRICE !== "false",
-  // Floor price dalam USD atau ETH (sesuai priceMode)
   floorPriceUsd: parseFloat(process.env.FLOOR_PRICE_USD || "0"),
-  // Offset harga dari floor price (dalam %)
   priceOffsetPercent: parseFloat(process.env.PRICE_OFFSET_PERCENT || "-10"),
-  // Listing 10 menit = 600 detik (OpenSea pakai detik)
   listingDurationSeconds: parseInt(process.env.LISTING_DURATION_SECONDS || "600"),
   maxListings: parseInt(process.env.MAX_LISTINGS || "0"),
-  cronSchedule: process.env.CRON_SCHEDULE || "*/10 * * * *", // Default 10 menit
+  cronSchedule: process.env.CRON_SCHEDULE || "*/10 * * * *",
   nftContractAddress: process.env.NFT_CONTRACT_ADDRESS || null,
 };
 
@@ -142,7 +117,6 @@ export function getSupportedChains() {
   }));
 }
 
-// Telegram notifications
 export const telegram = {
   enabled: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
   botToken: process.env.TELEGRAM_BOT_TOKEN,

@@ -1,19 +1,21 @@
 {
-  "name": "opensea-auto-bot",
-  "version": "1.0.0",
-  "description": "Bot auto listing NFT di OpenSea",
-  "main": "src/index.js",
+  "name": "opensea-bot-multichain",
+  "version": "2.0.0",
+  "description": "OpenSea Auto Listing Bot — Multi-Chain, Multi-Wallet",
   "type": "module",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "dry": "DRY_RUN=true node src/index.js"
   },
   "dependencies": {
-    "opensea-js": "^7.1.8",
-    "ethers": "^6.13.0",
-    "dotenv": "^16.4.5",
-    "node-cron": "^3.0.3",
     "chalk": "^5.3.0",
-    "ora": "^8.0.1"
+    "dotenv": "^16.4.5",
+    "ethers": "^6.11.1",
+    "node-cron": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

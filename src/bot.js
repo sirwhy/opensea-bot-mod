@@ -1,116 +1,198 @@
 import { log } from "./logger.js";
-import { 
-  getNFTsInWallet, 
-  getListingForNFT, 
-  createListing, 
-  cancelListing, 
-  calculatePrice,
-} from "./opensea.js";
 import { config } from "./config.js";
 import {
-  notifyListed,
-  notifyRelisted,
-  notifySold,
-  notifyFloorPrice,
-  notifyBotStarted,
-  notifyError
-} from "./telegram.js";
+  getNFTsInWallet,
+  getListingForNFT,
+  createListing,
+  cancelListing,
+  calculatePrice,
+  ensureApproval,
+  checkGasPrice,
+  sleep,
+} from "./opensea.js";
 
-export async function runBotCycle() {
-  log.title("🤖 OPENSEA AUTO BOT - MULAI SIKLUS");
-  log.divider();
+// ═══════════════════════════════════════════════════════════════════
+//  STATISTIK SESSION
+// ═══════════════════════════════════════════════════════════════════
+function createStats() {
+  return {
+    listed: 0,
+    relisted: 0,
+    skipped: 0,
+    errors: 0,
+    cancelled: 0,
+    gasBlocked: 0,
+    byChain: {},
+  };
+}
+
+function addChainStat(stats, chain, key) {
+  if (!stats.byChain[chain]) {
+    stats.byChain[chain] = { listed: 0, relisted: 0, skipped: 0, errors: 0 };
+  }
+  stats.byChain[chain][key] = (stats.byChain[chain][key] || 0) + 1;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PROSES SATU NFT
+// ═══════════════════════════════════════════════════════════════════
+async function processNFT(privateKey, nft, stats) {
+  const label = `${nft.collection}#${nft.identifier} [${nft.chain}]`;
+  const now = Math.round(Date.now() / 1000);
 
   try {
-    log.info("Mengambil NFT dari wallet...");
-    const nfts = await getNFTsInWallet();
-    log.success(`Ditemukan ${nfts.length} NFT di wallet`);
-
-    if (nfts.length === 0) {
-      log.warn("Tidak ada NFT di wallet.");
+    // Cek gas price
+    const gasOk = await checkGasPrice(nft.chain);
+    if (!gasOk) {
+      stats.gasBlocked++;
       return;
     }
 
-    let listed = 0, relisted = 0, skipped = 0, errors = 0;
-    const now = Math.round(Date.now() / 1000);
+    // Hitung target harga
+    const { price: targetPrice, source } = await calculatePrice({
+      slug: nft.collection,
+      chainInfo: nft.chainInfo,
+    });
 
-    for (const nft of nfts) {
-      const label = `${nft.name || nft.identifier} (#${nft.identifier})`;
-      try {
-        const targetPrice = await calculatePrice(nft);
-        const existing = await getListingForNFT(nft.contract, nft.identifier);
+    // Cek listing yang sudah ada
+    const existing = await getListingForNFT(nft);
 
-        if (existing) {
-          const currentPrice = parseFloat(existing.current_price) / 1e18;
-          const expiresAt = parseInt(existing.expiration_time);
-          const isExpired = expiresAt > 0 && expiresAt <= now;
-          const priceDiff = Math.abs(currentPrice - targetPrice) / targetPrice;
+    if (existing) {
+      const currentPrice = parseFloat(existing.current_price) / 1e18;
+      const expiresAt = parseInt(existing.expiration_time);
+      const isExpired = expiresAt > 0 && expiresAt <= now;
+      const priceDiff = Math.abs(currentPrice - targetPrice) / targetPrice;
+      const PRICE_THRESHOLD = 0.005; // 0.5% toleransi
 
-          if (priceDiff < 0.001 && !isExpired) {
-            const minsLeft = Math.round((expiresAt - now) / 60);
-            log.info(`⏭️  Skip: ${label} | ${currentPrice.toFixed(4)} ${config.chainSymbol} | ${minsLeft} mnt lagi`);
-            skipped++;
-            await sleep(500);
-            continue;
-          }
-
-          if (isExpired) {
-            log.warn(`⏰ Expired, relist: ${label}`);
-          } else {
-            log.warn(`📉 Floor berubah: ${label} | ${currentPrice.toFixed(4)} → ${targetPrice.toFixed(4)} ${config.chainSymbol}`);
-          }
-
-          // Cancel dengan kirim orderParameters dari existing listing
-          const orderParams = existing.protocol_data?.parameters;
-          await cancelListing(existing.order_hash, orderParams);
-          await sleep(3000);
-          relisted++;
-
-          // Notify relisted
-          notifyRelisted(
-            nft.identifier,
-            nft.collection || nft.name,
-            currentPrice.toFixed(4),
-            targetPrice.toFixed(4),
-            config.chainSymbol
-          );
-        } else {
-          log.info(`📋 Listing baru: ${label} @ ${targetPrice.toFixed(4)} ${config.chainSymbol}`);
-          listed++;
-
-          // Notify new listing
-          notifyListed(
-            nft.identifier,
-            nft.collection || nft.name,
-            targetPrice.toFixed(4),
-            config.chainSymbol
-          );
-        }
-
-        const { price } = await createListing(nft);
-        log.success(`✅ Listed: ${label} @ ${price.toFixed(4)} ${config.chainSymbol}`);
-
-      } catch (err) {
-        log.error(`Gagal: ${label} - ${err.message}`);
-        errors++;
+      // Skip jika harga sama dan belum expired
+      if (priceDiff < PRICE_THRESHOLD && !isExpired) {
+        const minsLeft = Math.round((expiresAt - now) / 60);
+        const daysLeft = (minsLeft / 60 / 24).toFixed(1);
+        log.info(
+          `⏭️  Skip: ${label} | ${currentPrice.toFixed(4)} ${nft.chainInfo.symbol} | ${daysLeft}d tersisa`
+        );
+        stats.skipped++;
+        addChainStat(stats, nft.chain, "skipped");
+        return;
       }
 
-      await sleep(1500);
+      // Perlu re-list
+      if (isExpired) {
+        log.warn(`⏰ Expired, relist: ${label}`);
+      } else {
+        log.warn(
+          `📉 Harga berubah: ${label} | ${currentPrice.toFixed(4)} → ${targetPrice.toFixed(4)} ${nft.chainInfo.symbol} (${source})`
+        );
+      }
+
+      const orderParams = existing.protocol_data?.parameters;
+      await cancelListing(privateKey, nft, existing.order_hash, orderParams);
+      stats.cancelled++;
+      await sleep(config.delayAfterCancel);
+      stats.relisted++;
+      addChainStat(stats, nft.chain, "relisted");
+    } else {
+      log.info(
+        `📋 Listing baru: ${label} @ ${targetPrice.toFixed(4)} ${nft.chainInfo.symbol} (${source})`
+      );
+      stats.listed++;
+      addChainStat(stats, nft.chain, "listed");
     }
 
-    log.divider();
-    log.title("📊 RINGKASAN");
-    console.log(`  ✅ Baru dilist : ${listed}`);
-    console.log(`  🔄 Re-listed  : ${relisted}`);
-    console.log(`  ⏭️  Skip       : ${skipped}`);
-    console.log(`  ❌ Error      : ${errors}`);
-    log.divider();
+    // Pastikan conduit sudah di-approve
+    await ensureApproval(privateKey, nft);
 
+    // Buat listing
+    const result = await createListing(privateKey, nft);
+
+    if (!result.dryRun) {
+      log.success(
+        `✅ Listed: ${label} @ ${result.price.toFixed(4)} ${nft.chainInfo.symbol}`
+      );
+    }
   } catch (err) {
-    log.error(`Error fatal: ${err.message}`);
-    console.error(err);
+    log.error(`Gagal proses ${label}: ${err.message}`);
+    if (config.verbose) console.error(err);
+    stats.errors++;
+    addChainStat(stats, nft.chain, "errors");
   }
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+// ═══════════════════════════════════════════════════════════════════
+//  PROSES SATU WALLET × SATU COLLECTION
+// ═══════════════════════════════════════════════════════════════════
+async function processWalletCollection(privateKey, collection, stats) {
+  const nfts = await getNFTsInWallet(privateKey, collection);
+
+  if (nfts.length === 0) {
+    log.chain(collection.chain, `Tidak ada NFT di ${collection.slug}`);
+    return;
+  }
+
+  log.chain(collection.chain, `Proses ${nfts.length} NFT dari ${collection.slug}...`);
+
+  for (const nft of nfts) {
+    await processNFT(privateKey, nft, stats);
+    await sleep(config.delayBetweenNFTs);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MAIN BOT CYCLE
+// ═══════════════════════════════════════════════════════════════════
+export async function runBotCycle() {
+  log.title("🤖 OPENSEA MULTI-CHAIN BOT — MULAI SIKLUS");
+  if (config.dryRun) log.dryRun("MODE DRY-RUN AKTIF — Tidak ada transaksi nyata");
+  log.divider();
+
+  const startTime = Date.now();
+  const stats = createStats();
+
+  try {
+    const { wallets, collections } = config;
+
+    log.info(
+      `Konfigurasi: ${wallets.length} wallet × ${collections.length} collection = ${wallets.length * collections.length} kombinasi`
+    );
+
+    for (const privateKey of wallets) {
+      // Ambil address untuk display
+      const { ethers } = await import("ethers");
+      const tempWallet = new ethers.Wallet(privateKey);
+      const addr = tempWallet.address;
+
+      log.wallet(addr, `Memproses wallet...`);
+
+      for (const collection of collections) {
+        await processWalletCollection(privateKey, collection, stats);
+      }
+    }
+  } catch (err) {
+    log.error(`Error fatal: ${err.message}`);
+    if (config.verbose) console.error(err);
+  }
+
+  // ─── Ringkasan ────────────────────────────────────────────────
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  log.divider();
+  log.title("📊 RINGKASAN SIKLUS");
+  console.log(`   ✅ Baru dilist   : ${stats.listed}`);
+  console.log(`   🔄 Re-listed    : ${stats.relisted}`);
+  console.log(`   ⏭️  Skip         : ${stats.skipped}`);
+  console.log(`   🚫 Cancel       : ${stats.cancelled}`);
+  console.log(`   ⛽ Gas blocked  : ${stats.gasBlocked}`);
+  console.log(`   ❌ Error        : ${stats.errors}`);
+  console.log(`   ⏱  Durasi       : ${elapsed}s`);
+
+  if (Object.keys(stats.byChain).length > 1) {
+    console.log("\n   Per Chain:");
+    for (const [chain, cs] of Object.entries(stats.byChain)) {
+      console.log(
+        `     ${chain.padEnd(12)}: listed=${cs.listed || 0} relisted=${cs.relisted || 0} skip=${cs.skipped || 0} err=${cs.errors || 0}`
+      );
+    }
+  }
+
+  log.divider();
+  return stats;
 }

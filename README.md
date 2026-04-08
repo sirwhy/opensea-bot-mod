@@ -1,121 +1,122 @@
-# 🤖 OpenSea Auto Listing Bot
+# 🤖 OpenSea Auto Listing Bot — Multi-Chain & Multi-Wallet
 
-Bot otomatis untuk listing NFT di OpenSea dengan fitur:
-- ✅ Auto list semua NFT di wallet
-- 🔄 Auto relist jika expired
-- 💰 Auto update harga mengikuti floor price
-- 🗑️ Auto cancel & relist jika harga berubah
+Bot otomatis untuk listing NFT di OpenSea, mendukung banyak chain dan banyak wallet sekaligus.
 
----
+## ✨ Fitur Baru (v2.0)
 
-## 📋 Prasyarat
+| Fitur | Keterangan |
+|---|---|
+| **Multi-Chain** | Ethereum, Polygon, Base, Arbitrum, Optimism, Avalanche, Klaytn, AnimeChain, Blast, Zora |
+| **Multi-Wallet** | Jalankan banyak wallet sekaligus |
+| **Multi-Collection** | Kelola beberapa collection di chain berbeda |
+| **Strategi Harga** | `floor`, `last_sale`, `fixed`, `floor_or_last` |
+| **Gas Protection** | Skip otomatis jika gas terlalu mahal |
+| **Auto Approval** | Cek & approve Seaport conduit otomatis |
+| **Retry Logic** | Retry otomatis dengan delay jika gagal |
+| **Dry-Run Mode** | Simulasi tanpa transaksi nyata |
+| **Price Cache** | Cache harga 60 detik agar hemat API call |
+| **Statistik Detail** | Ringkasan per siklus dan per chain |
 
-- Node.js versi 18 atau lebih baru
-- Akun OpenSea + API Key
-- Akun Alchemy / Infura (gratis)
-- Wallet Ethereum dengan NFT
+## 🚀 Setup
 
----
-
-## 🚀 Cara Install
-
-### 1. Clone / download project ini
-
-```bash
-git clone https://github.com/kamu/opensea-bot.git
-cd opensea-bot
-```
-
-### 2. Install dependencies
-
+### 1. Install dependencies
 ```bash
 npm install
 ```
 
-### 3. Buat file `.env`
-
+### 2. Buat file .env
 ```bash
 cp .env.example .env
 ```
 
-Buka file `.env` lalu isi:
-- `PRIVATE_KEY` → private key wallet kamu
-- `RPC_URL` → dari Alchemy atau Infura
-- `OPENSEA_API_KEY` → dari opensea.io/developers
-
-### 4. Jalankan bot
-
-```bash
-npm start
-```
-
----
-
-## ⚙️ Konfigurasi
-
-Semua pengaturan ada di file `.env`:
-
-| Variable | Fungsi | Contoh |
-|---|---|---|
-| `CHAIN` | Blockchain target | `ethereum`, `polygon`, `base` |
-| `DEFAULT_PRICE` | Harga listing (ETH) | `0.05` |
-| `FOLLOW_FLOOR_PRICE` | Ikut floor price | `true` |
-| `PRICE_OFFSET_PERCENT` | Offset dari floor | `-5` (5% dibawah floor) |
-| `LISTING_DURATION_DAYS` | Masa berlaku listing | `7` |
-| `CRON_SCHEDULE` | Jadwal pengecekan | `0 * * * *` (tiap jam) |
-| `NFT_CONTRACT_ADDRESS` | Filter 1 collection | kosongkan = semua NFT |
-| `MAX_LISTINGS` | Batas jumlah listing | `0` = tidak terbatas |
-
----
-
-## 🔗 Ganti Chain
-
-Cukup ubah di `.env`:
+Edit `.env` dan isi konfigurasi:
 
 ```env
-# Ethereum mainnet
-CHAIN=ethereum
-RPC_URL=https://eth-mainnet.g.alchemy.com/v2/KEY
+# Wallet (pilih salah satu)
+PRIVATE_KEY=0xprivate_key_kamu
+# atau banyak wallet:
+# PRIVATE_KEYS=0xkey1,0xkey2,0xkey3
 
-# Polygon
-CHAIN=polygon
-RPC_URL=https://polygon-mainnet.g.alchemy.com/v2/KEY
+OPENSEA_API_KEY=opensea_api_key_kamu
 
-# Base
-CHAIN=base
-RPC_URL=https://base-mainnet.g.alchemy.com/v2/KEY
+# Format: chain:collection-slug:0xContractAddress
+# Pisahkan dengan koma untuk multi-collection
+COLLECTIONS=animechain:gate-0:0xContractKamu
+
+# RPC untuk setiap chain yang dipakai
+RPC_URL_ANIMECHAIN=https://rpc.anime.xyz
 ```
 
----
-
-## 🖥️ Deploy ke VPS (agar bot jalan 24/7)
-
+### 3. Jalankan bot
 ```bash
-# Install PM2
-npm install -g pm2
+# Mode normal
+npm start
 
-# Jalankan bot dengan PM2
-pm2 start src/index.js --name opensea-bot
+# Mode dry-run (simulasi, tidak ada transaksi)
+npm run dry
 
-# Bot otomatis restart saat server reboot
-pm2 startup
-pm2 save
-
-# Lihat log
-pm2 logs opensea-bot
+# Mode dev (auto-restart saat file berubah)
+npm run dev
 ```
 
----
+## ⚙️ Konfigurasi Lengkap
 
-## ⚠️ Peringatan
+### COLLECTIONS (format)
+```
+COLLECTIONS=chain:slug:0xContract
+```
 
-- **JANGAN share private key kamu ke siapapun**
-- **JANGAN commit file `.env` ke GitHub**
-- Pastikan wallet punya cukup ETH untuk gas fee
-- Baca Terms of Service OpenSea sebelum menggunakan bot
+Contoh multi-chain:
+```
+COLLECTIONS=ethereum:boredapeyachtclub:0xBC4CA0Ed...,base:my-base-nft:0xABC123...,animechain:gate-0:0xDEF456...
+```
 
----
+### Chain yang didukung
+| Key | Chain | Symbol |
+|---|---|---|
+| `ethereum` | Ethereum Mainnet | ETH |
+| `polygon` | Polygon | POL |
+| `base` | Base | ETH |
+| `arbitrum` | Arbitrum One | ETH |
+| `optimism` | Optimism | ETH |
+| `avalanche` | Avalanche C-Chain | AVAX |
+| `klaytn` | Klaytn | KLAY |
+| `animechain` | AnimeChain | ANIME |
+| `blast` | Blast | ETH |
+| `zora` | Zora Network | ETH |
 
-## 📞 Butuh Bantuan?
+### Strategi Harga
+| Strategy | Keterangan |
+|---|---|
+| `floor` | Ikuti floor price collection |
+| `last_sale` | Ikuti harga last sale tertinggi |
+| `fixed` | Gunakan `DEFAULT_PRICE` saja |
+| `floor_or_last` | Ambil mana yang lebih tinggi |
 
-Cek bagian Issues di repository ini atau hubungi developer.
+```env
+PRICE_STRATEGY=floor
+PRICE_OFFSET_PERCENT=-2   # 2% di bawah floor
+MIN_PRICE=0.001            # tidak boleh kurang dari ini
+MAX_PRICE=10               # tidak boleh lebih dari ini (0 = bebas)
+```
+
+### Gas Protection
+```env
+MAX_GAS_PRICE_GWEI=50  # skip jika gas > 50 Gwei (0 = tidak dibatasi)
+```
+
+## 📁 Struktur Project
+
+```
+src/
+├── index.js    — Entry point & scheduler
+├── bot.js      — Logika utama siklus bot
+├── config.js   — Konfigurasi & parsing env
+├── opensea.js  — API OpenSea & Seaport integration
+├── wallet.js   — Multi-wallet & provider pool
+└── logger.js   — Colored logging
+```
+
+## ⚠️ Disclaimer
+
+Bot ini untuk keperluan edukasi. Pastikan Anda memahami risiko listing NFT secara otomatis. Selalu test dengan `DRY_RUN=true` terlebih dahulu.

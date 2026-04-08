@@ -136,7 +136,11 @@ function parseWallets() {
   const mnemonic = process.env.MNEMONIC?.trim();
   if (mnemonic) {
     try {
-      const wallet = ethers.Mnemonic.fromPhrase(mnemonic).deriveWallet();
+      // ethers v6
+      const wallet = ethers.HDNodeWallet.fromMnemonic(
+        ethers.Mnemonic.fromPhrase(mnemonic),
+        "m/44'/60'/0'/0/0"
+      );
       return [wallet.privateKey];
     } catch (err) {
       console.error(`Mnemonic tidak valid: ${err.message}`);

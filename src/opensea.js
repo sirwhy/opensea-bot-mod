@@ -518,8 +518,8 @@ async function scanNFTsViaOwnerOf(chain, contract, walletAddress) {
       const batchSize = 50;
       const delayMs = 200; // Rate limit protection
       
-      // Scan in batches (include extra for newly minted)
-      for (let start = 0; start < scanLimit; start += batchSize) {
+      // Scan in batches (start from 70k for efficiency)
+      for (let start = 70000; start < scanLimit; start += batchSize) {
         const end = Math.min(start + batchSize, totalSupply);
         
         const promises = [];

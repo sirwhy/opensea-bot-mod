@@ -2,7 +2,7 @@ import "dotenv/config";
 import { ethers } from "ethers";
 
 // ═══════════════════════════════════════════════════════════════════
-//  CHAIN REGISTRY — Semua chain yang didukung OpenSea Seaport
+//  CHAIN REGISTRY — public RPC defaults untuk semua chain
 // ═══════════════════════════════════════════════════════════════════
 export const CHAIN_REGISTRY = {
   ethereum: {
@@ -10,7 +10,8 @@ export const CHAIN_REGISTRY = {
     chainId: 1,
     symbol: "ETH",
     rpcEnv: "RPC_URL_ETHEREUM",
-    defaultRpc: "https://eth.llamarpc.com",
+    // Multiple public RPCs sebagai fallback
+    defaultRpc: "https://ethereum.publicnode.com",
     blockExplorer: "https://etherscan.io",
   },
   polygon: {
@@ -18,7 +19,7 @@ export const CHAIN_REGISTRY = {
     chainId: 137,
     symbol: "POL",
     rpcEnv: "RPC_URL_POLYGON",
-    defaultRpc: "https://polygon.llamarpc.com",
+    defaultRpc: "https://polygon.publicnode.com",
     blockExplorer: "https://polygonscan.com",
   },
   base: {
@@ -26,7 +27,7 @@ export const CHAIN_REGISTRY = {
     chainId: 8453,
     symbol: "ETH",
     rpcEnv: "RPC_URL_BASE",
-    defaultRpc: "https://base.llamarpc.com",
+    defaultRpc: "https://base.publicnode.com",
     blockExplorer: "https://basescan.org",
   },
   arbitrum: {
@@ -34,7 +35,8 @@ export const CHAIN_REGISTRY = {
     chainId: 42161,
     symbol: "ETH",
     rpcEnv: "RPC_URL_ARBITRUM",
-    defaultRpc: "https://arbitrum.llamarpc.com",
+    // ✅ Public RPC Arbitrum yang reliable
+    defaultRpc: "https://arbitrum-one.publicnode.com",
     blockExplorer: "https://arbiscan.io",
   },
   optimism: {
@@ -42,7 +44,7 @@ export const CHAIN_REGISTRY = {
     chainId: 10,
     symbol: "ETH",
     rpcEnv: "RPC_URL_OPTIMISM",
-    defaultRpc: "https://optimism.llamarpc.com",
+    defaultRpc: "https://optimism.publicnode.com",
     blockExplorer: "https://optimistic.etherscan.io",
   },
   avalanche: {
@@ -50,7 +52,7 @@ export const CHAIN_REGISTRY = {
     chainId: 43114,
     symbol: "AVAX",
     rpcEnv: "RPC_URL_AVALANCHE",
-    defaultRpc: "https://api.avax.network/ext/bc/C/rpc",
+    defaultRpc: "https://avalanche-c-chain.publicnode.com",
     blockExplorer: "https://snowtrace.io",
   },
   klaytn: {
@@ -66,7 +68,7 @@ export const CHAIN_REGISTRY = {
     chainId: 69000,
     symbol: "ANIME",
     rpcEnv: "RPC_URL_ANIMECHAIN",
-    defaultRpc: null,
+    defaultRpc: "https://rpc.animechain.ai",
     blockExplorer: "https://explorer.animechain.ai",
   },
   blast: {
@@ -74,7 +76,7 @@ export const CHAIN_REGISTRY = {
     chainId: 81457,
     symbol: "ETH",
     rpcEnv: "RPC_URL_BLAST",
-    defaultRpc: "https://rpc.blast.io",
+    defaultRpc: "https://blast.publicnode.com",
     blockExplorer: "https://blastscan.io",
   },
   zora: {
@@ -88,18 +90,14 @@ export const CHAIN_REGISTRY = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-//  PARSE MULTI-VALUE env helper
+//  HELPERS
 // ═══════════════════════════════════════════════════════════════════
 function parseList(envKey, separator = ",") {
   const val = process.env[envKey] || "";
-  return val
-    .split(separator)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return val.split(separator).map((s) => s.trim()).filter(Boolean);
 }
 
 function parseCollections() {
-  // Format: "ethereum:collection-slug:0xContract,base:another-slug:0xContract2"
   const raw = parseList("COLLECTIONS");
   if (raw.length === 0) return [];
 
@@ -112,7 +110,9 @@ function parseCollections() {
     }
     const chainInfo = CHAIN_REGISTRY[chain.toLowerCase()];
     if (!chainInfo) {
-      throw new Error(`Chain tidak dikenal: "${chain}". Pilihan: ${Object.keys(CHAIN_REGISTRY).join(", ")}`);
+      throw new Error(
+        `Chain tidak dikenal: "${chain}". Pilihan: ${Object.keys(CHAIN_REGISTRY).join(", ")}`
+      );
     }
     return {
       chain: chain.toLowerCase(),
@@ -124,27 +124,21 @@ function parseCollections() {
 }
 
 function parseWallets() {
-  // PRIVATE_KEYS=0xkey1,0xkey2,0xkey3
   const keys = parseList("PRIVATE_KEYS");
   if (keys.length > 0) return keys;
 
-  // Fallback ke PRIVATE_KEY tunggal
   const single = process.env.PRIVATE_KEY;
-  if (single) return [single];
+  if (single) return [single.trim()];
 
-  // Support MNEMONIC - derive wallet from 12/24 word phrase
   const mnemonic = process.env.MNEMONIC?.trim();
   if (mnemonic) {
-    // Support custom derivation path via MNEMONIC_PATH env var
-    const derivationPath = process.env.MNEMONIC_PATH || "m/44'/60'/0'/0/0";
-    
+    const path = process.env.MNEMONIC_PATH || "m/44'/60'/0'/0/0";
     try {
-      // ethers v6
       const hdNode = ethers.HDNodeWallet.fromMnemonic(
         ethers.Mnemonic.fromPhrase(mnemonic),
-        derivationPath
+        path
       );
-      console.log(`[MNEMONIC] Derived address: ${hdNode.address} (path: ${derivationPath})`);
+      console.log(`[MNEMONIC] Derived: ${hdNode.address} (${path})`);
       return [hdNode.privateKey];
     } catch (err) {
       console.error(`Mnemonic tidak valid: ${err.message}`);
@@ -155,108 +149,82 @@ function parseWallets() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  PRICE STRATEGY
+//  CONFIG
 // ═══════════════════════════════════════════════════════════════════
-//  PRICE_STRATEGY:
-//    "floor"     → ikuti floor price collection
-//    "last_sale" → ikuti harga last sale tertinggi
-//    "fixed"     → pakai DEFAULT_PRICE saja
-//    "floor_or_last" → ambil mana yang lebih tinggi antara floor dan last sale
-
-const PRICE_STRATEGIES = ["floor", "last_sale", "fixed", "floor_or_last"];
-
 export const config = {
-  // --- Wallet ---
+  // Wallet
   wallets: parseWallets(),
 
-  // --- OpenSea ---
+  // OpenSea
   openseaApiKey: process.env.OPENSEA_API_KEY,
 
-  // --- Collections (multi-chain, multi-collection) ---
+  // Collections
   collections: parseCollections(),
 
-  // --- Harga ---
-  defaultPrice: parseFloat(process.env.DEFAULT_PRICE || "0.05"),
-  minPrice: parseFloat(process.env.MIN_PRICE || "0.001"),
-  maxPrice: parseFloat(process.env.MAX_PRICE || "0"),         // 0 = tidak ada batas atas
-  priceStrategy: (process.env.PRICE_STRATEGY || "floor").toLowerCase(),
+  // Harga — floor only, tidak ada DEFAULT_PRICE
+  // minPriceFallback dipakai HANYA jika floor price tidak bisa diambil sama sekali
+  minPriceFallback: parseFloat(process.env.MIN_PRICE_FALLBACK || "0.000001"),
   priceOffsetPercent: parseFloat(process.env.PRICE_OFFSET_PERCENT || "0"),
+  maxPrice: parseFloat(process.env.MAX_PRICE || "0"), // 0 = tidak ada batas
 
-  // --- Listing ---
-  listingDurationDays: parseFloat(process.env.LISTING_DURATION_DAYS || "7"),
-  maxListingsPerWallet: parseInt(process.env.MAX_LISTINGS || "0"),  // 0 = semua
+  // Strategi harga — selalu "floor"
+  priceStrategy: "floor",
 
-  // --- Jadwal ---
-  cronSchedule: process.env.CRON_SCHEDULE || "0 * * * *",
+  // ✅ Durasi listing: 10 menit (bukan hari)
+  listingDurationMinutes: parseInt(process.env.LISTING_DURATION_MINUTES || "10"),
 
-  // --- Retry ---
+  // Max listing per wallet
+  maxListingsPerWallet: parseInt(process.env.MAX_LISTINGS || "0"),
+
+  // Jadwal
+  cronSchedule: process.env.CRON_SCHEDULE || "*/10 * * * *", // default setiap 10 menit
+
+  // Retry
   maxRetries: parseInt(process.env.MAX_RETRIES || "3"),
-  retryDelayMs: parseInt(process.env.RETRY_DELAY_MS || "5000"),
+  retryDelayMs: parseInt(process.env.RETRY_DELAY_MS || "3000"),
 
-  // --- Gas limit ---
-  maxGasPriceGwei: parseFloat(process.env.MAX_GAS_PRICE_GWEI || "0"),  // 0 = tidak ada batas
+  // Gas limit (0 = tidak ada batas)
+  maxGasPriceGwei: parseFloat(process.env.MAX_GAS_PRICE_GWEI || "0"),
 
-  // --- Mode ---
+  // Mode
   dryRun: process.env.DRY_RUN === "true",
   verbose: process.env.VERBOSE === "true",
 
-  // --- Delay antar operasi (ms) ---
-  delayBetweenNFTs: parseInt(process.env.DELAY_BETWEEN_NFTS || "1500"),
+  // Delay antar operasi (ms)
+  delayBetweenNFTs: parseInt(process.env.DELAY_BETWEEN_NFTS || "2000"),
   delayAfterCancel: parseInt(process.env.DELAY_AFTER_CANCEL || "3000"),
 
-  // Manual token IDs to bypass blockchain scan
-  tokenIds: process.env.TOKEN_IDS 
-    ? process.env.TOKEN_IDS.split(",").map(t => t.trim()).filter(t => t)
+  // Manual token IDs (bypass scan)
+  tokenIds: process.env.TOKEN_IDS
+    ? process.env.TOKEN_IDS.split(",").map((t) => t.trim()).filter(Boolean)
     : [],
 };
 
+// ═══════════════════════════════════════════════════════════════════
+//  VALIDATE
+// ═══════════════════════════════════════════════════════════════════
 export function validateConfig() {
   const errors = [];
 
-  // Check for any wallet source: PRIVATE_KEY, PRIVATE_KEYS, or MNEMONIC
-  const hasPrivateKey = process.env.PRIVATE_KEY;
-  const hasPrivateKeys = process.env.PRIVATE_KEYS;
-  const hasMnemonic = process.env.MNEMONIC?.trim();
-  
-  if (!hasPrivateKey && !hasPrivateKeys && !hasMnemonic)
-    errors.push("PRIVATE_KEY atau PRIVATE_KEYS atau MNEMONIC harus diisi");
+  if (config.wallets.length === 0)
+    errors.push("PRIVATE_KEY / PRIVATE_KEYS / MNEMONIC harus diisi");
 
   if (!config.openseaApiKey)
     errors.push("OPENSEA_API_KEY harus diisi");
 
   if (config.collections.length === 0)
-    errors.push(
-      "COLLECTIONS harus diisi.\n   Format: ethereum:collection-slug:0xContractAddress,base:slug:0xContract"
-    );
-
-  if (!PRICE_STRATEGIES.includes(config.priceStrategy))
-    errors.push(
-      `PRICE_STRATEGY tidak valid: "${config.priceStrategy}". Pilihan: ${PRICE_STRATEGIES.join(", ")}`
-    );
+    errors.push("COLLECTIONS harus diisi.\n   Format: chain:collection-slug:0xContractAddress");
 
   if (errors.length > 0) {
     throw new Error(
       `❌ Konfigurasi tidak lengkap:\n\n${errors.map((e) => `   • ${e}`).join("\n")}\n\n   Salin .env.example ke .env dan isi nilainya.`
     );
   }
-
-  // Validasi RPC untuk setiap chain yang dipakai
-  const chainsNeeded = [...new Set(config.collections.map((c) => c.chain))];
-  for (const chain of chainsNeeded) {
-    const info = CHAIN_REGISTRY[chain];
-    const rpc = process.env[info.rpcEnv] || info.defaultRpc;
-    if (!rpc) {
-      errors.push(`RPC_URL untuk chain ${chain} (env: ${info.rpcEnv}) belum diset dan tidak ada default.`);
-    }
-  }
-
-  if (errors.length > 0) {
-    throw new Error(`❌ RPC tidak lengkap:\n\n${errors.map((e) => `   • ${e}`).join("\n")}`);
-  }
 }
 
 export function getRpcUrl(chain) {
   const info = CHAIN_REGISTRY[chain];
   if (!info) throw new Error(`Chain tidak dikenal: ${chain}`);
+  // Prioritas: env var → default public RPC
   return process.env[info.rpcEnv] || info.defaultRpc;
 }

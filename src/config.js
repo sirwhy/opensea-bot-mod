@@ -8,8 +8,8 @@ const PUBLIC_RPCS = {
     "https://rpc.ankr.com/eth",
   ],
   polygon: [
-    "https://polygon.llamarpc.com",
     "https://polygon-rpc.com",
+    "https://polygon.llamarpc.com",
     "https://rpc.ankr.com/polygon",
   ],
   base: [
@@ -18,8 +18,8 @@ const PUBLIC_RPCS = {
     "https://rpc.ankr.com/base",
   ],
   arbitrum: [
-    "https://arbitrum.llamarpc.com",
     "https://arb1.arbitrum.io/rpc",
+    "https://arbitrum.llamarpc.com",
     "https://rpc.ankr.com/arbitrum",
   ],
   optimism: [
@@ -28,12 +28,11 @@ const PUBLIC_RPCS = {
     "https://rpc.ankr.com/optimism",
   ],
   avalanche: [
-    "https://avalanche.llamarpc.com",
     "https://api.avax.network/ext/bc/C/rpc",
+    "https://avalanche.llamarpc.com",
     "https://rpc.ankr.com/avalanche",
   ],
   klaytn: [
-    "https://klaytn.llamarpc.com",
     "https://kaia.llamarpc.com",
     "https://rpc.ankr.com/klaytn",
   ],
@@ -41,17 +40,17 @@ const PUBLIC_RPCS = {
     "https://rpc.animechain.io",
   ],
   bsc: [
-    "https://bsc.llamarpc.com",
     "https://binance.llamarpc.com",
+    "https://bsc.llamarpc.com",
     "https://rpc.ankr.com/bsc",
   ],
   celo: [
-    "https://celo.llamarpc.com",
     "https://rpc.ankr.com/celo",
+    "https://celo.llamarpc.com",
   ],
   fantom: [
-    "https://fantom.llamarpc.com",
     "https://rpc.ankr.com/fantom",
+    "https://fantom.llamarpc.com",
   ],
 };
 
@@ -71,15 +70,22 @@ const CHAIN_MAP = {
 
 const chainKey = process.env.CHAIN?.toLowerCase() || "ethereum";
 const chainInfo = CHAIN_MAP[chainKey] || CHAIN_MAP["ethereum"];
-const publicRpcList = PUBLIC_RPCS[chainKey] || PUBLIC_RPCS["ethereum"];
 
 // Get RPC - use user provided or pick random public RPC
 function getRpcUrl() {
+  // If user provided RPC_URL, use it
   if (process.env.RPC_URL && process.env.RPC_URL.trim() !== "") {
     return process.env.RPC_URL;
   }
+  
+  // Get RPC list for current chain
+  const rpcs = PUBLIC_RPCS[chainKey] || PUBLIC_RPCS["ethereum"];
+  if (!rpcs || rpcs.length === 0) {
+    throw new Error(`No public RPCs available for chain: ${chainKey}`);
+  }
+  
   // Use random public RPC from the list
-  const randomRpc = publicRpcList[Math.floor(Math.random() * publicRpcList.length)];
+  const randomRpc = rpcs[Math.floor(Math.random() * rpcs.length)];
   console.log(`🔗 Using public RPC: ${randomRpc}`);
   return randomRpc;
 }

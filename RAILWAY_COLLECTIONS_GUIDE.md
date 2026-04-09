@@ -17,15 +17,15 @@ COLLECTIONS=\"arbitrum:arbitrumdao-celebrating-the-third-anniversary:0xContract\
 ### **Option 1: Tanpa Quotes** (RECOMMENDED)
 ```bash
 # Railway Dashboard → Settings → Variables
-COLLECTIONS=arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x0000419b4b6132e05dfbd89f65b165dfd6fa126f
-#                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+COLLECTIONS=arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x41fdE438b6B757bc13f956464fD64b3a540692F0
+#                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #                                           Paste contract address here
 ```
 
 ### **Option 2: Dengan Quotes di Railway UI**
 ```bash
 # Railway UI allows quotes, bot will handle them automatically
-COLLECTIONS="arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x0000419b4b6132e05dfbd89f65b165dfd6fa126f"
+COLLECTIONS="arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x41fdE438b6B757bc13f956464fD64b3a540692F0"
 ```
 
 **Bot sekarang sudah support BOTH format!** ✅
@@ -88,7 +88,7 @@ chain:collection-slug:contract-address
 
 ### **Example:**
 ```
-arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x0000419b4b6132e05dfbd89f65b165dfd6fa126f
+arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x41fdE438b6B757bc13f956464fD64b3a540692F0
       ↑                          ↑                                        ↑
    chain name              collection slug                        contract address
 ```
@@ -101,7 +101,7 @@ Set `DRY_RUN="true"` first:
 
 ```bash
 DRY_RUN="true"
-COLLECTIONS="arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x0000419b4b6132e05dfbd89f65b165dfd6fa126f"
+COLLECTIONS="arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x41fdE438b6B757bc13f956464fD64b3a540692F0"
 ```
 
 **Expected Output:**
@@ -109,7 +109,7 @@ COLLECTIONS="arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x0000419b4b
 🔧 Config debug:
    • Collections: 1 collection(s)
    • Collection: arbitrumdao-celebrating-the-third-anniversary@arbitrum
-   • Contract: 0x0000419b4b6132e05dfbd89f65b165dfd6fa126f
+   • Contract: 0x41fdE438b6B757bc13f956464fD64b3a540692F0
 ```
 
 ---
@@ -152,7 +152,7 @@ Etherscan success: 50 tokens found
 2. Verify contract address:
    - Should start with `0x`
    - Should be 42 characters long
-   - Example: `0x0000419b4b6132e05dfbd89f65b165dfd6fa126f`
+   - Example: `0x41fdE438b6B757bc13f956464fD64b3a540692F0`
 
 ### **Error: "Chain tidak dikenal: arbitrumdao..."**
 
@@ -183,7 +183,7 @@ Before deploying:
 - [ ] Format: `chain:slug:contract`
 - [ ] Chain = `arbitrum` (lowercase)
 - [ ] Slug = `arbitrumdao-celebrating-the-third-anniversary` (exact)
-- [ ] Contract = `0x0000419b4b6132e05dfbd89f65b165dfd6fa126f` (verified)
+- [ ] Contract = `0x41fdE438b6B757bc13f956464fD64b3a540692F0` (verified)
 - [ ] `MNEMONIC` variable set
 - [ ] `OPENSEA_API_KEY` variable set
 - [ ] `ETHERSCAN_API_KEY` = `X9PH5MYKVIQ2RSI6XFYAF8BHZ4TD3IE5E7`
@@ -197,7 +197,7 @@ Before deploying:
 
 **Railway Variable Format:**
 ```
-COLLECTIONS=arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x0000419b4b6132e05dfbd89f65b165dfd6fa126f
+COLLECTIONS=arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x41fdE438b6B757bc13f956464fD64b3a540692F0
 ```
 
 **Bot supports both:**

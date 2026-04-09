@@ -14,7 +14,7 @@ OPENSEA_API_KEY="your_opensea_api_key_here"
 
 ### 🎯 COLLECTIONS (IMPORTANT!)
 ```env
-COLLECTIONS="arbitrum:arbitrumdao-celebrating-the-third-anniversary:0xContractAddress"
+COLLECTIONS="arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x41fdE438b6B757bc13f956464fD64b3a540692F0"
 ```
 
 **⚠️ PENTING:**

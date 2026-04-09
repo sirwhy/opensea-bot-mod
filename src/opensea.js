@@ -1,7 +1,8 @@
 import { ethers } from "ethers";
-import { config, etherscan } from "./config.js";
+import { config } from "./config.js";
 import { getWallet, getProvider, getGasPrice } from "./wallet.js";
 import { log } from "./logger.js";
+import { calculatePriceWithMinFloor, usdToEth, ethToUsd } from "./price.js";
 
 // ═══════════════════════════════════════════════════════════════════
 //  ETHERSCAN API CONFIG
@@ -187,19 +188,35 @@ export async function getFloorPrice(collectionSlug) {
 export async function calculatePrice(collection) {
   const { slug } = collection;
   const currentFloor = await getFloorPrice(slug);
-  const minPrice = stickyFloor.get(slug) || config.minPriceFallback;
+  const minPriceEth = await usdToEth(config.minPriceUsd);
 
   if (!currentFloor || currentFloor <= 0) {
-    log.warn(`Floor tidak tersedia untuk ${slug}, pakai sticky min: ${minPrice}`);
-    return { price: minPrice, source: "sticky_min_fallback", basePrice: minPrice };
+    log.warn(`Floor tidak tersedia untuk ${slug}, pakai min: ${config.minPriceUsd} USD (~${minPriceEth.toFixed(6)} ETH)`);
+    return { price: minPriceEth, source: "min_floor_fallback", basePrice: minPriceEth };
   }
 
+  // Use min floor protection if enabled
+  if (config.useMinPrice) {
+    const result = await calculatePriceWithMinFloor(collection, currentFloor);
+    
+    // Log if using min floor protection
+    const floorUsd = await ethToUsd(currentFloor);
+    if (result.source === "min_floor") {
+      log.info(`${slug}: Floor $${floorUsd.toFixed(2)} → $${config.minPriceUsd.toFixed(2)} (min floor)`);
+    } else {
+      log.info(`${slug}: Floor $${floorUsd.toFixed(2)} → $${(await ethToUsd(result.price)).toFixed(2)}`);
+    }
+    
+    return result;
+  }
+
+  // Fallback to old logic
   const offset = (config.priceOffsetPercent || 0) / 100;
   let price = currentFloor * (1 + offset);
 
-  if (price < minPrice) {
-    log.info(`Floor ${price.toFixed(6)} < sticky min ${minPrice.toFixed(6)}, pakai sticky min`);
-    price = minPrice;
+  if (price < minPriceEth) {
+    log.info(`Floor ${(await ethToUsd(price)).toFixed(2)} < min ${(await ethToUsd(minPriceEth)).toFixed(2)}, pakai min`);
+    price = minPriceEth;
   }
 
   return { price, source: "floor", basePrice: currentFloor };

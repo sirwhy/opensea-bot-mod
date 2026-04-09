@@ -1,4 +1,5 @@
 import https from "https";
+import { config } from "./config.js";
 
 // CoinGecko API for price conversion (free, no API key needed)
 const PRICE_CACHE_MS = 60000; // 1 minute cache
@@ -89,4 +90,48 @@ export async function usdToEth(usdAmount) {
 export async function ethToUsd(ethAmount) {
   const ethPrice = await getEthPriceUsd();
   return ethAmount * ethPrice;
+}
+
+/**
+ * Calculate price with min floor protection (USD-based)
+ * 
+ * Strategy: 
+ * - If floor < minPrice, use minPrice (in USD, converted to ETH)
+ * - If floor >= minPrice, use floor (can go higher if floor rises)
+ * 
+ * Example:
+ * - Floor $0.005 → Listing $0.02 (min protection)
+ * - Floor $0.05 → Listing $0.05 (follow floor)
+ * - Floor $0.10 → Listing $0.10 (follow floor, can go higher)
+ */
+export async function calculatePriceWithMinFloor(collection, currentFloor) {
+  if (!config.useMinPrice) {
+    // If min floor protection disabled, use regular logic
+    const minPriceFallback = config.minPriceFallback;
+    const offset = (config.priceOffsetPercent || 0) / 100;
+    let price = currentFloor * (1 + offset);
+
+    if (price < minPriceFallback) {
+      return { price, source: "floor_fallback" };
+    }
+
+    return { price, source: "floor" };
+  }
+
+  // Convert min price from USD to ETH
+  const minPriceEth = await usdToEth(config.minPriceUsd);
+  
+  // Use the higher of floor or min floor
+  let price;
+  let source;
+
+  if (currentFloor < minPriceEth) {
+    price = minPriceEth;
+    source = "min_floor";
+  } else {
+    price = currentFloor;
+    source = "floor";
+  }
+
+  return { price, source };
 }

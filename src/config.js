@@ -220,6 +220,10 @@ export const config = {
   tokenIds: process.env.TOKEN_IDS
     ? process.env.TOKEN_IDS.split(",").map((t) => t.trim()).filter(Boolean)
     : [],
+
+  // Price Protection (USD-based)
+  minPriceUsd: parseFloat(process.env.MIN_PRICE_USD || "0.02"), // Default $0.02 USD
+  useMinPrice: process.env.USE_MIN_PRICE === "true", // Enable min price protection
 };
 
 // ═══════════════════════════════════════════════════════════════════

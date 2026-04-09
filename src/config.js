@@ -95,26 +95,37 @@ export const CHAIN_REGISTRY = {
 // ═══════════════════════════════════════════════════════════════════
 function parseList(envKey, separator = ",") {
   const val = process.env[envKey] || "";
-  return val.split(separator).map((s) => s.trim()).filter(Boolean);
+  // Remove quotes if present (from Railway/CLI)
+  const cleanVal = val.replace(/^"|"$/g, "").replace(/^'|'$/g, "");
+  return cleanVal.split(separator).map((s) => s.trim()).filter(Boolean);
 }
 
 function parseCollections() {
   const raw = parseList("COLLECTIONS");
-  if (raw.length === 0) return [];
+  if (raw.length === 0) {
+    throw new Error(
+      `COLLECTIONS tidak diatur!\n   Gunakan format: chain:collection-slug:0xContractAddress\n   Contoh: arbitrum:arbitrumdao-celebrating-the-third-anniversary:0xContractAddress`
+    );
+  }
 
-  return raw.map((entry) => {
-    const [chain, slug, contract] = entry.split(":");
+  return raw.map((entry, index) => {
+    // Remove quotes from each entry
+    const cleanEntry = entry.replace(/^"|"$/g, "").replace(/^'|'$/g, "");
+    const [chain, slug, contract] = cleanEntry.split(":");
+    
     if (!chain || !slug || !contract) {
       throw new Error(
-        `Format COLLECTIONS salah: "${entry}"\n   Gunakan format: chain:collection-slug:0xContractAddress`
+        `Format COLLECTIONS salah pada entry #${index + 1}: "${cleanEntry}"\n   Gunakan format: chain:collection-slug:0xContractAddress\n   Contoh: arbitrum:arbitrumdao-celebrating-the-third-anniversary:0x123abc...`
       );
     }
+    
     const chainInfo = CHAIN_REGISTRY[chain.toLowerCase()];
     if (!chainInfo) {
       throw new Error(
-        `Chain tidak dikenal: "${chain}". Pilihan: ${Object.keys(CHAIN_REGISTRY).join(", ")}`
+        `Chain tidak dikenal pada entry #${index + 1}: "${chain}"\n   Pilihan: ${Object.keys(CHAIN_REGISTRY).join(", ")}`
       );
     }
+    
     return {
       chain: chain.toLowerCase(),
       chainInfo,

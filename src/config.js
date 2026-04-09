@@ -258,6 +258,3 @@ export function getRpcUrl(chain) {
   // Prioritas: env var → default public RPC
   return process.env[info.rpcEnv] || info.defaultRpc;
 }
-
-// Export etherscan config
-export { etherscan };

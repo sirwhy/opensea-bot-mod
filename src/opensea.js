@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { config } from "./config.js";
+import { config, etherscan } from "./config.js";
 import { getWallet, getProvider, getGasPrice } from "./wallet.js";
 import { log } from "./logger.js";
 import { calculatePriceWithMinFloor, usdToEth, ethToUsd } from "./price.js";

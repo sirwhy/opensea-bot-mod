@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { ethers } from "ethers";
+import { parseMintConfig } from "./mint.js";
 
 // ═══════════════════════════════════════════════════════════════════
 //  CHAIN REGISTRY — public RPC defaults untuk semua chain
@@ -224,6 +225,9 @@ export const config = {
   // Price Protection (USD-based)
   minPriceUsd: parseFloat(process.env.MIN_PRICE_USD || "0.02"), // Default $0.02 USD
   useMinPrice: process.env.USE_MIN_PRICE === "true", // Enable min price protection
+
+  // Auto-Mint Configuration
+  mintConfig: parseMintConfig(),
 };
 
 // ═══════════════════════════════════════════════════════════════════

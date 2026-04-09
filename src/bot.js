@@ -11,6 +11,7 @@ import {
   checkGasPrice,
   sleep,
 } from "./opensea.js";
+import { checkAndMintNFTs } from "./mint.js";
 
 function createStats() {
   return { listed: 0, relisted: 0, skipped: 0, errors: 0, cancelled: 0, gasBlocked: 0, soldSkipped: 0, totalNfts: 0, byChain: {} };
@@ -98,6 +99,16 @@ async function processNFT(privateKey, nft, stats) {
 }
 
 async function processWalletCollection(privateKey, collection, stats) {
+  const label = `${collection.slug}@${collection.chain}`;
+  
+  // ✅ Auto-mint check BEFORE listing
+  const mintResult = await checkAndMintNFTs(collection);
+  if (mintResult.minted > 0) {
+    log.success(`✅ Auto-mint: ${mintResult.minted} NFTs minted (tx: ${mintResult.txHash?.slice(0, 10)}...)`);
+    // Re-fetch NFTs after minting
+    await sleep(5000); // Wait for blockchain to sync
+  }
+
   // getNFTsInWallet sudah verifikasi ownership realtime — NFT yang terjual tidak akan masuk
   const nfts = await getNFTsInWallet(privateKey, collection);
   

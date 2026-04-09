@@ -1,7 +1,56 @@
 import { ethers } from "ethers";
-import { config } from "./config.js";
+import { config, etherscan } from "./config.js";
 import { getWallet, getProvider, getGasPrice } from "./wallet.js";
 import { log } from "./logger.js";
+
+// ═══════════════════════════════════════════════════════════════════
+//  ETHERSCAN API CONFIG
+// ═══════════════════════════════════════════════════════════════════
+const ETHERSCAN_CHAIN_MAP = {
+  ethereum: "etherscan",
+  polygon: "api.bscscan.com",
+  base: "api.basescan.org",
+  arbitrum: "api.arbiscan.io",
+  optimism: "api-optimistic.etherscan.io",
+  avalanche: "api.snowtrace.io",
+  klaytn: "api.klaytnscope.com",
+  blast: "api.blastscan.io",
+  zora: "api.zora.energy",
+  animechain: "api.animechain.ai",
+};
+
+async function etherscanRequest(action, address, chain) {
+  if (!etherscan.enabled || !etherscan.apiKey) {
+    return null;
+  }
+
+  const explorer = ETHERSCAN_CHAIN_MAP[chain.toLowerCase()] || "etherscan";
+  const baseUrl = etherscan.baseUrl.includes("://") 
+    ? etherscan.baseUrl 
+    : `https://${explorer}/api`;
+  
+  const params = new URLSearchParams({
+    module: "account",
+    action: action,
+    address: address,
+    apikey: etherscan.apiKey,
+  });
+
+  const url = `${baseUrl}?${params.toString()}`;
+  
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      log.warn(`Etherscan API ${res.status} for ${action}: ${address}`);
+      return null;
+    }
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    log.warn(`Etherscan API request failed: ${err.message}`);
+    return null;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  CONSTANTS
@@ -157,6 +206,62 @@ export async function calculatePrice(collection) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+//  NFT DISCOVERY VIA ETHERSCAN
+// ═══════════════════════════════════════════════════════════════════
+async function scanNFTsViaEtherscan(chain, contract, walletAddress) {
+  if (!etherscan.enabled) {
+    log.chain(chain, "Etherscan API not enabled, skipping...");
+    return [];
+  }
+
+  log.chain(chain, `Scanning NFTs via Etherscan API for ${walletAddress.slice(0, 6)}...`);
+
+  const data = await etherscanRequest("tokenlist", walletAddress, chain);
+  if (!data || data.status !== "1") {
+    log.warn("Etherscan NFT scan failed");
+    return [];
+  }
+
+  const tokenList = data.result || [];
+  const tokenIds = [];
+
+  // Filter only ERC721/1155 tokens that match our contract
+  for (const token of tokenList) {
+    if (token.contractAddress?.toLowerCase() === contract.toLowerCase()) {
+      // For ERC721, use tokenID
+      if (token.tokenId && token.tokenId !== "0") {
+        tokenIds.push(token.tokenId);
+      }
+    }
+  }
+
+  log.chain(chain, `Etherscan found ${tokenIds.length} NFTs for contract ${contract.slice(0, 8)}...`);
+  return tokenIds;
+}
+
+async function verifyNFTOwnershipViaEtherscan(chain, contract, tokenId, walletAddress) {
+  if (!etherscan.enabled) {
+    return null;
+  }
+
+  // For ERC721, check ownerOf via Etherscan
+  const data = await etherscanRequest("tokennftidx", walletAddress, chain);
+  if (!data || data.status !== "1") {
+    return null;
+  }
+
+  const tokens = data.result || [];
+  for (const token of tokens) {
+    if (token.contractAddress?.toLowerCase() === contract.toLowerCase() && 
+        token.tokenId === String(tokenId)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  NFT DISCOVERY — Realtime ownership check
 // ═══════════════════════════════════════════════════════════════════
 const OS_CHAIN_MAP = {
@@ -212,25 +317,43 @@ export async function getNFTsInWallet(privateKey, collection) {
     return limit > 0 ? nfts.slice(0, limit) : nfts;
   }
 
-  // 2. Try OpenSea API first (realtime)
-  log.chain(chain, `${label}: Cek NFT via OpenSea API...`);
-  const osNFTs = await getNFTsFromOpenSeaAPI(chain, slug, wallet.address);
-
-  if (osNFTs && osNFTs.length > 0) {
-    for (const nft of osNFTs) {
-      const tokenId = nft.identifier || nft.token_id;
-      if (!tokenId) continue;
-      const owned = await verifyOwnershipOnChain(provider, contract, tokenId, wallet.address);
-      if (owned) {
-        allTokens.add(String(tokenId));
-      } else {
-        log.warn(`⚠️  Token #${tokenId} tidak lagi dimiliki, dilewati`);
+  // 2. Try Etherscan API first (if enabled)
+  if (etherscan.enabled && etherscan.apiKey) {
+    log.chain(chain, `${label}: Cek NFT via Etherscan API...`);
+    try {
+      const etherscanTokens = await scanNFTsViaEtherscan(chain, contract, wallet.address);
+      if (etherscanTokens && etherscanTokens.length > 0) {
+        for (const tokenId of etherscanTokens) {
+          allTokens.add(String(tokenId));
+        }
+        log.chain(chain, `${label}: Etherscan found ${allTokens.size} NFT`);
       }
+    } catch (err) {
+      log.warn(`Etherscan scan failed: ${err.message}`);
     }
-    log.chain(chain, `${label}: OpenSea found ${allTokens.size} NFT`);
   }
 
-  // 3. Only auto-detect if OpenSea returned nothing
+  // 3. Try OpenSea API as secondary source
+  if (allTokens.size === 0) {
+    log.chain(chain, `${label}: Cek NFT via OpenSea API...`);
+    const osNFTs = await getNFTsFromOpenSeaAPI(chain, slug, wallet.address);
+
+    if (osNFTs && osNFTs.length > 0) {
+      for (const nft of osNFTs) {
+        const tokenId = nft.identifier || nft.token_id;
+        if (!tokenId) continue;
+        const owned = await verifyOwnershipOnChain(provider, contract, tokenId, wallet.address);
+        if (owned) {
+          allTokens.add(String(tokenId));
+        } else {
+          log.warn(`⚠️  Token #${tokenId} tidak lagi dimiliki, dilewati`);
+        }
+      }
+      log.chain(chain, `${label}: OpenSea found ${allTokens.size} NFT`);
+    }
+  }
+
+  // 4. Only auto-detect if no API worked
   if (allTokens.size === 0) {
     log.chain(chain, `${label}: Auto-detect NFT via public RPC...`);
     try {

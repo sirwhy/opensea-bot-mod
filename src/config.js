@@ -158,9 +158,22 @@ export const telegram = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+//  ETHERSCAN
+// ═══════════════════════════════════════════════════════════════════
+export const etherscan = {
+  apiKey: process.env.ETHERSCAN_API_KEY || "",
+  enabled: process.env.USE_ETHERSCAN_API === "true",
+  baseUrl: process.env.ETHERSCAN_BASE_URL || "https://api.etherscan.io/api",
+  scanBatch: parseInt(process.env.ETHERSCAN_SCAN_BATCH || "100"),
+  rateLimitMs: parseInt(process.env.ETHERSCAN_RATE_LIMIT_MS || "1000"),
+};
+
+// ═══════════════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════════════
 export const config = {
+  // Etherscan
+  etherscan: etherscan,
   // Wallet
   wallets: parseWallets(),
 
@@ -237,3 +250,6 @@ export function getRpcUrl(chain) {
   // Prioritas: env var → default public RPC
   return process.env[info.rpcEnv] || info.defaultRpc;
 }
+
+// Export etherscan config
+export { etherscan };

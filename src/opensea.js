@@ -22,6 +22,7 @@ const ETHERSCAN_CHAIN_MAP = {
 
 async function etherscanRequest(action, address, chain) {
   if (!etherscan.enabled || !etherscan.apiKey) {
+    log.chain(chain, "Etherscan API not enabled or API key missing");
     return null;
   }
 
@@ -39,6 +40,8 @@ async function etherscanRequest(action, address, chain) {
 
   const url = `${baseUrl}?${params.toString()}`;
   
+  log.chain(chain, `Etherscan API: ${action} for ${address.slice(0, 6)}... (Explorer: ${explorer})`);
+
   try {
     const res = await fetch(url);
     if (!res.ok) {
@@ -46,6 +49,13 @@ async function etherscanRequest(action, address, chain) {
       return null;
     }
     const data = await res.json();
+    
+    if (data.status === "1") {
+      log.chain(chain, `Etherscan success: ${data.result?.length || 0} tokens found`);
+    } else {
+      log.warn(`Etherscan response status: ${data.message}`);
+    }
+    
     return data;
   } catch (err) {
     log.warn(`Etherscan API request failed: ${err.message}`);

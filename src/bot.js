@@ -133,6 +133,15 @@ export async function runBotCycle() {
   if (config.dryRun) log.dryRun("MODE DRY-RUN AKTIF — Tidak ada transaksi nyata");
   log.divider();
 
+  // Debug: Log config values
+  log.info(`🔧 Config debug:`);
+  log.info(`   • Min Price USD: $${config.minPriceUsd}`);
+  log.info(`   • Use Min Price: ${config.useMinPrice}`);
+  log.info(`   • Etherscan Enabled: ${config.etherscan.enabled}`);
+  log.info(`   • Etherscan API Key: ${config.etherscan.apiKey ? '✅ Set' : '❌ Not set'}`);
+  log.info(`   • Auto-Mint Enabled: ${config.mintConfig?.default?.enabled || '❌ Not set'}`);
+  log.divider();
+
   const startTime = Date.now();
   const stats = createStats();
 
